@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UniversalShare — Receiver</title>
+<style>
+  body { font-family: system-ui, sans-serif; background:#000; color:#e6e6e6; margin:0;
+         display:flex; flex-direction:column; align-items:center; justify-content:center;
+         min-height:100vh; gap:16px; }
+  #pinBox { font-size:64px; letter-spacing:16px; font-weight:700; color:#4f8cff; }
+  #hint, #status { color:#9aa3b2; }
+  video { position:fixed; inset:0; width:100vw; height:100vh; object-fit:contain;
+          background:#000; display:none; }
+  #stats { position:fixed; top:12px; right:16px; font:12px monospace; color:#6f7a8a;
+           display:none; }
+</style>
+</head>
+<body>
+  <div id="pairUi">
+    <div style="text-align:center">
+      <h2>🖥️ Ekran Al</h2>
+      <div id="pinBox">·····</div>
+      <p id="hint">Gönderen cihazda bu kodu gir.<br>
+        <small>Üretimde bu ekranda QR kod da yer alır: <code>ushare://pair?…</code></small></p>
+      <p id="status">Sunucuya bağlanılıyor…</p>
+    </div>
+  </div>
+  <video id="screen" autoplay playsinline></video>
+  <div id="stats"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const status = m => $('status').textContent = m;
+
+const ws = new WebSocket(`ws://${location.host}/ws?role=receiver`);
+const pc = new RTCPeerConnection({ iceServers: [] }); // LAN: STUN gereksiz
+
+pc.ontrack = ev => {
+  $('screen').srcObject = ev.streams[0];
+  $('screen').style.display = 'block';
+  $('pairUi').style.display = 'none';
+  $('stats').style.display = 'block';
+};
+
+pc.onicecandidate = e =>
+  e.candidate && ws.readyState === 1 &&
+  ws.send(JSON.stringify({ type: 'ice', candidate: e.candidate }));
+
+ws.onopen = () => status('PIN bekleniyor…');
+ws.onmessage = async ev => {
+  const msg = JSON.parse(ev.data);
+  if (msg.type === 'pin')    { $('pinBox').textContent = msg.pin; status('Gönderen bekleniyor…'); }
+  if (msg.type === 'paired')   status('Eşleşti, akış kuruluyor…');
+  if (msg.type === 'offer') {
+    await pc.setRemoteDescription(msg.sdp);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    ws.send(JSON.stringify({ type: 'answer', sdp: answer }));
+  }
+  if (msg.type === 'ice') await pc.addIceCandidate(msg.candidate).catch(() => {});
+};
+ws.onclose = () => status('Signaling bağlantısı kapandı.');
+
+// Basit canlı istatistik: çözünürlük, fps, bitrate.
+let lastBytes = 0, lastTs = 0;
+setInterval(async () => {
+  if (pc.connectionState !== 'connected') return;
+  const stats = await pc.getStats();
+  stats.forEach(r => {
+    if (r.type === 'inbound-rtp' && r.kind === 'video') {
+      const kbps = lastTs ? Math.round(8 * (r.bytesReceived - lastBytes) / (r.timestamp - lastTs)) : 0;
+      lastBytes = r.bytesReceived; lastTs = r.timestamp;
+      $('stats').textContent =
+        `${r.frameWidth}×${r.frameHeight} @ ${r.framesPerSecond ?? '-'}fps · ${kbps} kbps`;
+    }
+  });
+}, 1000);
+</script>
+</body>
+</html>

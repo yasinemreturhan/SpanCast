@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UniversalShare — Sender</title>
+<style>
+  body { font-family: system-ui, sans-serif; background:#0f1117; color:#e6e6e6;
+         display:flex; flex-direction:column; align-items:center; gap:20px; padding:48px 16px; }
+  input { font-size:28px; letter-spacing:8px; text-align:center; width:220px; padding:10px;
+          border-radius:12px; border:1px solid #2a3040; background:#1b1f2a; color:#fff; }
+  button { font-size:18px; padding:12px 32px; border-radius:12px; border:0;
+           background:#4f8cff; color:#fff; cursor:pointer; }
+  button:disabled { background:#2a3040; cursor:default; }
+  #status { color:#9aa3b2; min-height:24px; }
+  video { max-width:480px; border-radius:12px; border:1px solid #2a3040; }
+</style>
+</head>
+<body>
+  <h2>📤 Ekranımı Paylaş</h2>
+  <p>Alıcı ekranındaki 6 haneli kodu gir:</p>
+  <input id="pin" maxlength="6" inputmode="numeric" placeholder="000000">
+  <button id="startBtn">Paylaşımı Başlat</button>
+  <div id="status"></div>
+  <video id="preview" autoplay muted playsinline></video>
+
+<script>
+const status = m => document.getElementById('status').textContent = m;
+
+document.getElementById('startBtn').onclick = async () => {
+  const pin = document.getElementById('pin').value.trim();
+  if (!/^\d{6}$/.test(pin)) return status('6 haneli PIN gerekli.');
+  document.getElementById('startBtn').disabled = true;
+
+  // 1) Ekranı yakala (üretimde: yerel capture katmanı — DXGI/ScreenCaptureKit).
+  //    PoC'ta tarayıcının getDisplayMedia'sı aynı kavramı kanıtlar.
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: { ideal: 60 }, cursor: 'always' },
+      audio: true, // sekme/sistem sesi (tarayıcı desteğine göre)
+    });
+  } catch (e) {
+    document.getElementById('startBtn').disabled = false;
+    return status('Ekran yakalama iptal edildi: ' + e.message);
+  }
+  document.getElementById('preview').srcObject = stream;
+
+  // 2) Signaling kanalı: PIN ile oturuma katıl.
+  const ws = new WebSocket(`ws://${location.host}/ws?role=sender&pin=${pin}`);
+  const pc = new RTCPeerConnection({ iceServers: [] }); // LAN: STUN gereksiz
+
+  stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+  // Düşük gecikme: encoder'ı gerçek zamanlı içerik için ipucula.
+  pc.getSenders().forEach(s => {
+    if (s.track?.kind === 'video') {
+      const p = s.getParameters();
+      p.degradationPreference = 'maintain-framerate';
+      s.setParameters(p).catch(() => {});
+    }
+  });
+
+  pc.onicecandidate = e =>
+    e.candidate && ws.readyState === 1 &&
+    ws.send(JSON.stringify({ type: 'ice', candidate: e.candidate }));
+
+  pc.onconnectionstatechange = () => status('Bağlantı: ' + pc.connectionState);
+
+  ws.onmessage = async ev => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === 'error') return status('❌ ' + msg.message);
+    if (msg.type === 'paired') {
+      status('Eşleşti, teklif gönderiliyor…');
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      ws.send(JSON.stringify({ type: 'offer', sdp: offer }));
+    }
+    if (msg.type === 'answer') await pc.setRemoteDescription(msg.sdp);
+    if (msg.type === 'ice')    await pc.addIceCandidate(msg.candidate).catch(() => {});
+  };
+
+  stream.getVideoTracks()[0].onended = () => { pc.close(); ws.close(); status('Paylaşım durdu.'); };
+};
+</script>
+</body>
+</html>
