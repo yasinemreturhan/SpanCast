@@ -1,0 +1,15 @@
+{
+  "id": "com.universalshare.receiver",
+  "version": "0.3.0",
+  "vendor": "UniversalShare",
+  "type": "web",
+  "main": "index.html",
+  "title": "UniversalShare",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgColor": "#0F1117",
+  "iconColor": "#0F1117",
+  "disableBackHistoryAPI": false,
+  "allowVideoCapture": true,
+  "allowAudioCapture": true
+}
