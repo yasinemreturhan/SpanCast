@@ -17,15 +17,24 @@ make build          # → bin/ushare
 ./bin/ushare        # varsayılan port 8788
 ```
 
-- Alıcı cihazda `http://<sunucu-ip>:8788/receiver.html` → 6 haneli PIN + QR görünür
-- Gönderen cihaz(lar)da `http://<sunucu-ip>:8788/sender.html` → PIN'i gir, ekranı seç
+- Sunucu **varsayılan olarak TLS ile** çalışır (ilk açılışta cihaz başına kalıcı
+  self-signed sertifika üretilir; tarayıcıda bir kez "yine de devam et" demeniz yeterli —
+  böylece `getDisplayMedia` her cihazda çalışır). Geliştirme için `-no-tls` bayrağı var.
+- Alıcı cihazda `https://<sunucu-ip>:8788/receiver.html` → 6 haneli PIN + QR görünür
+  ("↻ Yeni kod" ile PIN yenilenebilir)
+- Gönderen cihaz(lar)da `https://<sunucu-ip>:8788/sender.html` → PIN'i gir, ekranı seç
 - Aynı PIN ile **4 kaynağa kadar** katılım: alıcı otomatik grid'e böler (1→tam, 2→yan yana, 3-4→2×2)
 - Signaling koparsa istemciler üstel backoff ile kendini toparlar
-- Not: `getDisplayMedia` güvenli bağlam ister; localhost dışında Chrome bayrağı
-  (`#unsafely-treat-insecure-origin-as-secure`) veya TLS gerekir.
 
-**Testler:** `make test` (23 Go testi: oda/hub birimleri + gerçek WebSocket uçtan uca akış),
-`make webtest` (12 node testi: grid layout + reconnect'li SignalClient).
+**Güvenlik (MVP):**
+- PIN ağdan hiç geçmez: sunucu rastgele salt gönderir, istemci
+  `HMAC-SHA256(PIN, salt)` proof'uyla doğrulanır (testle sözleşmeli: `TestPinNeverOnWire`)
+- IP başına dakikada 10 hatalı deneme sınırı (kaba kuvvet koruması)
+- Sertifika SHA-256 parmak izi `/api/info` ve eşleşme QR'ında (`fp=`) — istemci pinning'e hazır
+- Tam PAKE (SPAKE2) Rust çekirdek fazında gelecek
+
+**Testler:** `make test` (Go: birimler + gerçek WebSocket uçtan uca akış),
+`make webtest` (node: grid layout, reconnect, PIN proof vektörleri).
 
 ## Özet stack kararları
 

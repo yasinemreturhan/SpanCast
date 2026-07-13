@@ -36,12 +36,16 @@ Böylece her platformda aynı stack, tarayıcı dahil.
 - **Manuel:** PIN ile bağlanma her zaman mümkün (keşif tamamen kapalıysa bile)
 
 ### 2.2 Pairing (Eşleşme) ve Güvenlik
-1. Receiver 6 haneli PIN üretir (30 sn TTL) ve ekranda + QR olarak gösterir.
-   QR içeriği: `ushare://pair?host=…&port=…&pin=…&fp=…`
-2. Sender PIN'i girer → **SPAKE2** (password-authenticated key exchange) ile PIN'den
-   MITM'e dayanıklı ortak anahtar türetilir. PIN ağdan asla düz geçmez.
-3. Türetilen anahtar, DTLS sertifika parmak izlerini karşılıklı imzalar → WebRTC
-   oturumu uçtan uca doğrulanmış olur.
+1. Receiver 6 haneli PIN üretir (kullanılmazsa 2 dk TTL; "Yeni kod" ile yenilenir)
+   ve ekranda + QR olarak gösterir. QR içeriği: `ushare://pair?host=…&port=…&pin=…&fp=…`
+2. **MVP'de uygulanan:** PIN ağdan hiç geçmez — sunucu salt challenge gönderir,
+   istemci `HMAC-SHA256(PIN, salt)` proof'u döner; sunucu açık odaların PIN'leriyle
+   sabit zamanlı karşılaştırır. IP başına hız sınırı çevrimiçi kaba kuvveti keser;
+   taşıma TLS (cihaz başına kalıcı self-signed sertifika, SHA-256 parmak izi
+   QR'da ve /api/info'da → istemci pinning).
+3. **Hedef (Rust çekirdek fazı):** **SPAKE2** ile PIN'den MITM'e dayanıklı ortak
+   anahtar türetilir; anahtar DTLS sertifika parmak izlerini karşılıklı imzalar →
+   WebRTC oturumu uçtan uca doğrulanmış olur.
 4. "Bu cihaza güven" → kalıcı anahtar çifti kaydedilir, sonraki bağlantılar tek tık.
 
 ### 2.3 Capture (Ekran Yakalama)

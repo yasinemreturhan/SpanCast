@@ -20,7 +20,7 @@ import (
 	"github.com/yasinemreturhan/DoScreen/server/internal/ws"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 //go:embed web
 var webFS embed.FS
