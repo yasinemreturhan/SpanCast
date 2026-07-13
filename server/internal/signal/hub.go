@@ -139,6 +139,13 @@ func (h *Hub) SenderGone(ss *SenderSession) {
 	}
 }
 
+// RegeneratePIN: odaya yeni PIN atar ve receiver'a bildirir. Eski PIN anında
+// geçersizleşir; bağlı sender'lar etkilenmez.
+func (h *Hub) RegeneratePIN(rs *ReceiverSession) {
+	pin := h.rooms.Regenerate(rs.rm)
+	rs.conn.Send(Message{Type: "pin", PIN: pin, RoomID: rs.rm.ID})
+}
+
 // ReceiverGone: receiver koptu — tüm sender'lara hata bildirilir, bağlantıları
 // kapatılır ve oda kayıttan düşürülür.
 func (h *Hub) ReceiverGone(rs *ReceiverSession) {

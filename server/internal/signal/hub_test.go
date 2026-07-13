@@ -138,3 +138,32 @@ func TestBadPinRejected(t *testing.T) {
 		t.Fatal("geçersiz PIN reddedilmeliydi")
 	}
 }
+
+func TestRegeneratePIN(t *testing.T) {
+	h, recv, sess := setupRoom(t)
+	old := sess.PIN()
+
+	h.RegeneratePIN(sess)
+
+	fresh := sess.PIN()
+	if fresh == old {
+		t.Fatal("PIN değişmeliydi")
+	}
+	// Receiver'a yeni pin mesajı gitmeli (ilk pin mesajından sonra ikinci).
+	var pins []string
+	for _, m := range recv.received() {
+		if m.Type == "pin" {
+			pins = append(pins, m.PIN)
+		}
+	}
+	if len(pins) != 2 || pins[1] != fresh {
+		t.Fatalf("yeni pin mesajı eksik/yanlış: %v", pins)
+	}
+	// Eski PIN'le katılım reddedilir, yenisiyle çalışır.
+	if _, err := h.JoinRoom(old, "x", &fakeConn{}); err == nil {
+		t.Fatal("eski PIN geçersiz olmalı")
+	}
+	if _, err := h.JoinRoom(fresh, "x", &fakeConn{}); err != nil {
+		t.Fatalf("yeni PIN çalışmalı: %v", err)
+	}
+}

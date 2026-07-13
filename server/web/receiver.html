@@ -19,6 +19,9 @@
   #qr { display:none; width:160px; height:160px; border-radius:8px; margin-top:12px;
         background:#fff; padding:6px; }
   #status { color:#9aa3b2; min-height:20px; }
+  #regenBtn { font-size:14px; padding:6px 16px; border-radius:10px; border:1px solid #2a3040;
+              background:#1b1f2a; color:#9aa3b2; cursor:pointer; }
+  #regenBtn:hover { color:#fff; border-color:#4f8cff; }
 
   /* Multi-share grid */
   #grid { position:fixed; inset:0; display:grid; gap:2px; }
@@ -37,6 +40,7 @@
       <div id="pinBox">······</div>
       <div><img id="qr" alt="Eşleşme QR kodu"></div>
       <p>Gönderen cihazda bu kodu gir ya da QR'ı okut.</p>
+      <p><button id="regenBtn" title="Yeni eşleşme kodu al">↻ Yeni kod</button></p>
       <p id="status">Sunucuya bağlanılıyor…</p>
     </div>
   </div>

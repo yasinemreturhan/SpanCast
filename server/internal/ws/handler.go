@@ -103,6 +103,10 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				conn.Close()
 				return
 			}
+			if m.Type == "regen" {
+				h.hub.RegeneratePIN(rs)
+				continue
+			}
 			h.hub.FromReceiver(rs, m)
 		}
 

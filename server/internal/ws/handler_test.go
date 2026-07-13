@@ -175,6 +175,25 @@ func TestRateLimitAfterRepeatedBadPins(t *testing.T) {
 	}
 }
 
+func TestRegenOverWS(t *testing.T) {
+	url := newServer(t)
+	recv := dial(t, url, "role=receiver")
+	first := readMsg(t, recv)
+
+	if err := recv.WriteJSON(map[string]string{"type": "regen"}); err != nil {
+		t.Fatal(err)
+	}
+	second := readUntil(t, recv, "pin")
+	if second.PIN == first.PIN || len(second.PIN) != 6 {
+		t.Fatalf("yeni PIN gelmeliydi: eski=%s yeni=%s", first.PIN, second.PIN)
+	}
+	// Yeni PIN'le katılım çalışmalı.
+	_, m := joinSender(t, url, second.PIN, "x", false)
+	if m.Type != "paired" {
+		t.Fatalf("yeni PIN'le paired bekleniyordu: %+v", m)
+	}
+}
+
 func TestBadRoleRejected(t *testing.T) {
 	h := NewHandler(signal.NewHub())
 	srv := httptest.NewServer(h)

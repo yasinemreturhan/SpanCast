@@ -101,4 +101,6 @@ function reflow() {
   if (n > 0) status('');
 }
 
+$('regenBtn').onclick = () => client.send({ type: 'regen' });
+
 client.connect();
