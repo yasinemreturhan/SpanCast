@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -52,6 +53,28 @@ func newServer(t *testing.T) string {
 	return "ws" + strings.TrimPrefix(srv.URL, "http")
 }
 
+// joinSender: challenge-response akışıyla odaya katılır ve paired bekler.
+// wrongPin true ise kasıtlı yanlış PIN'le proof üretir.
+func joinSender(t *testing.T, url, pin, name string, wrongPin bool) (*websocket.Conn, signal.Message) {
+	t.Helper()
+	c := dial(t, url, "role=sender&name="+name)
+	ch := readUntil(t, c, "challenge")
+	var salt struct {
+		Salt string `json:"salt"`
+	}
+	if err := json.Unmarshal(ch.Payload, &salt); err != nil || salt.Salt == "" {
+		t.Fatalf("challenge salt eksik: %+v", ch)
+	}
+	if wrongPin {
+		pin = "000000"
+	}
+	proof := signal.Proof(pin, salt.Salt)
+	if err := c.WriteJSON(map[string]any{"type": "auth", "payload": map[string]string{"proof": proof}}); err != nil {
+		t.Fatal(err)
+	}
+	return c, readMsg(t, c) // paired ya da error
+}
+
 func TestFullSignalingFlow(t *testing.T) {
 	url := newServer(t)
 
@@ -62,15 +85,16 @@ func TestFullSignalingFlow(t *testing.T) {
 		t.Fatalf("pin mesajı bekleniyordu: %+v", pinMsg)
 	}
 
-	// İki sender katılır; receiver iki joined görür.
-	s1 := dial(t, url, "role=sender&pin="+pinMsg.PIN+"&name=laptop")
-	readUntil(t, s1, "paired")
+	// İki sender challenge-response ile katılır; receiver iki joined görür.
+	s1, p1 := joinSender(t, url, pinMsg.PIN, "laptop", false)
+	if p1.Type != "paired" {
+		t.Fatalf("paired bekleniyordu: %+v", p1)
+	}
 	j1 := readUntil(t, recv, "joined")
 	if j1.Name != "laptop" {
 		t.Fatalf("joined adı yanlış: %+v", j1)
 	}
-	s2 := dial(t, url, "role=sender&pin="+pinMsg.PIN+"&name=tablet")
-	readUntil(t, s2, "paired")
+	s2, _ := joinSender(t, url, pinMsg.PIN, "tablet", false)
 	j2 := readUntil(t, recv, "joined")
 
 	// sender-1 offer gönderir → receiver from damgalı alır.
@@ -108,10 +132,46 @@ func TestFullSignalingFlow(t *testing.T) {
 
 func TestBadPinRejected(t *testing.T) {
 	url := newServer(t)
-	c := dial(t, url, "role=sender&pin=000000&name=x")
+	recv := dial(t, url, "role=receiver")
+	pinMsg := readMsg(t, recv)
+
+	_, m := joinSender(t, url, pinMsg.PIN, "x", true /* yanlış PIN */)
+	if m.Type != "error" || m.Reason != "bad-pin" {
+		t.Fatalf("bad-pin hatası bekleniyordu: %+v", m)
+	}
+}
+
+func TestPinNeverOnWire(t *testing.T) {
+	// Sözleşme: sender URL'inde ve auth mesajında PIN bulunmaz.
+	url := newServer(t)
+	recv := dial(t, url, "role=receiver")
+	pinMsg := readMsg(t, recv)
+
+	c := dial(t, url, "role=sender&name=x")
+	ch := readUntil(t, c, "challenge")
+	if strings.Contains(string(ch.Payload), pinMsg.PIN) {
+		t.Fatal("challenge PIN içermemeli")
+	}
+	// (URL zaten pin parametresi olmadan kuruldu — derleme zamanı sözleşme.)
+}
+
+func TestRateLimitAfterRepeatedBadPins(t *testing.T) {
+	url := newServer(t)
+	recv := dial(t, url, "role=receiver")
+	pinMsg := readMsg(t, recv)
+
+	// Sınıra kadar yanlış dene.
+	for i := 0; i < maxPinFails; i++ {
+		_, m := joinSender(t, url, pinMsg.PIN, "x", true)
+		if m.Reason != "bad-pin" {
+			t.Fatalf("%d. denemede bad-pin bekleniyordu: %+v", i+1, m)
+		}
+	}
+	// Sınır aşıldı: doğru PIN bile artık challenge alamadan reddedilir.
+	c := dial(t, url, "role=sender&name=x")
 	m := readMsg(t, c)
-	if m.Type != "error" {
-		t.Fatalf("error mesajı bekleniyordu: %+v", m)
+	if m.Type != "error" || m.Reason != "rate-limited" {
+		t.Fatalf("rate-limited bekleniyordu: %+v", m)
 	}
 }
 

@@ -1,6 +1,8 @@
-// Sender: PIN ile odaya katılır, ekranı yakalar ve WebRTC ile akıtır.
-// Signaling koparsa SignalClient yeniden bağlanır ve akış yeniden kurulur.
+// Sender: PIN ile odaya katılır (challenge-response — PIN ağdan geçmez),
+// ekranı yakalar ve WebRTC ile akıtır. Signaling koparsa SignalClient
+// yeniden bağlanır ve akış yeniden kurulur.
 import { SignalClient } from './signal.js';
+import { pinProof } from './pair.js';
 
 const $ = id => document.getElementById(id);
 const status = m => { $('status').textContent = m; };
@@ -81,9 +83,14 @@ $('startBtn').onclick = async () => {
   const name = $('deviceName').value.trim() || 'Tarayıcı';
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   client = new SignalClient(
-    `${proto}://${location.host}/ws?role=sender&pin=${pin}&name=${encodeURIComponent(name)}`,
+    `${proto}://${location.host}/ws?role=sender&name=${encodeURIComponent(name)}`,
   );
 
+  // Kimlik doğrulama: sunucunun salt'ına PIN'le HMAC proof üret.
+  client.on('challenge', async msg => {
+    const proof = await pinProof(pin, msg.payload.salt);
+    client.send({ type: 'auth', payload: { proof } });
+  });
   client.on('paired', () => { status('Eşleşti, akış kuruluyor…'); buildPeer(); });
   client.on('answer', msg => pc?.setRemoteDescription(msg.payload));
   client.on('ice', msg => pc?.addIceCandidate(msg.payload).catch(() => {}));

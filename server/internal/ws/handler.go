@@ -4,8 +4,11 @@
 package ws
 
 import (
+	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/yasinemreturhan/DoScreen/server/internal/room"
@@ -62,12 +65,21 @@ func (w *wsConn) Close() {
 	w.c.Close()
 }
 
+// Kaba kuvvet sınırı: IP başına dakikada en fazla bu kadar hatalı PIN denemesi.
+const (
+	maxPinFails   = 10
+	pinFailWindow = time.Minute
+)
+
 // Handler: /ws endpoint'i.
 type Handler struct {
-	hub *signal.Hub
+	hub     *signal.Hub
+	limiter *Limiter
 }
 
-func NewHandler(hub *signal.Hub) *Handler { return &Handler{hub: hub} }
+func NewHandler(hub *signal.Hub) *Handler {
+	return &Handler{hub: hub, limiter: NewLimiter(maxPinFails, pinFailWindow)}
+}
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	role := r.URL.Query().Get("role")
@@ -95,17 +107,40 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	case "sender":
-		pin := r.URL.Query().Get("pin")
 		name := r.URL.Query().Get("name")
 		if name == "" {
 			name = "cihaz"
 		}
-		ss, err := h.hub.JoinRoom(pin, name, conn)
+		ip := remoteIP(r)
+
+		// Kimlik doğrulama: PIN ağdan geçmez — salt challenge'a HMAC proof.
+		if !h.limiter.Allowed(ip) {
+			c.WriteJSON(signal.Message{Type: "error", Reason: "rate-limited"})
+			conn.Close()
+			return
+		}
+		salt := signal.NewSalt()
+		conn.Send(signal.Message{Type: "challenge", Payload: mustJSON(map[string]string{"salt": salt})})
+
+		var auth signal.Message
+		c.SetReadDeadline(time.Now().Add(30 * time.Second))
+		if err := c.ReadJSON(&auth); err != nil || auth.Type != "auth" {
+			conn.Close()
+			return
+		}
+		c.SetReadDeadline(time.Time{}) // doğrulama sonrası süresiz
+		var proof struct {
+			Proof string `json:"proof"`
+		}
+		json.Unmarshal(auth.Payload, &proof)
+
+		ss, err := h.hub.JoinByProof(salt, proof.Proof, name, conn)
 		if err != nil {
 			reason := "join-failed"
 			switch {
 			case errors.Is(err, room.ErrNotFound):
 				reason = "bad-pin"
+				h.limiter.Fail(ip)
 			case errors.Is(err, room.ErrExpired):
 				reason = "pin-expired"
 			case errors.Is(err, room.ErrRoomFull):
@@ -128,4 +163,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.hub.FromSender(ss, m)
 		}
 	}
+}
+
+// remoteIP: RemoteAddr'dan portu ayıklar.
+func remoteIP(r *http.Request) string {
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return ip
+}
+
+func mustJSON(v any) json.RawMessage {
+	b, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
