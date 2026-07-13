@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UniversalShare</title>
+<style>
+  body { font-family: system-ui, sans-serif; background:#0f1117; color:#e6e6e6;
+         display:flex; flex-direction:column; align-items:center; gap:24px; padding:48px 16px; }
+  h1 { font-weight:600; letter-spacing:.5px; }
+  .cards { display:flex; gap:24px; flex-wrap:wrap; justify-content:center; }
+  a.card { display:block; width:240px; padding:32px 24px; border-radius:16px; text-align:center;
+           background:#1b1f2a; color:#e6e6e6; text-decoration:none; border:1px solid #2a3040;
+           transition:transform .15s, border-color .15s; }
+  a.card:hover { transform:translateY(-3px); border-color:#4f8cff; }
+  .card .icon { font-size:42px; margin-bottom:12px; }
+  #peers { font-size:14px; color:#9aa3b2; max-width:520px; }
+  #peers li { margin:4px 0; }
+  #peers a { color:#4f8cff; }
+</style>
+</head>
+<body>
+  <h1>UniversalShare</h1>
+  <div class="cards">
+    <a class="card" href="sender.html"><div class="icon">📤</div><b>Ekranımı Paylaş</b><br><small>Sender</small></a>
+    <a class="card" href="receiver.html"><div class="icon">🖥️</div><b>Ekran Al</b><br><small>Receiver</small></a>
+  </div>
+  <div id="peers"><b>Ağda keşfedilen cihazlar:</b><ul id="peerList"><li>aranıyor…</li></ul></div>
+<script>
+  async function refreshPeers() {
+    try {
+      const res = await fetch('/api/peers');
+      const list = await res.json();
+      document.getElementById('peerList').innerHTML = list.length
+        ? list.map(p => `<li>🟢 ${p.name} — <a href="http://${p.addr}:${p.port}/">${p.addr}:${p.port}</a></li>`).join('')
+        : '<li>henüz cihaz bulunamadı</li>';
+    } catch {} // sunucuya ulaşılamıyorsa liste olduğu gibi kalır
+  }
+  refreshPeers(); setInterval(refreshPeers, 3000);
+</script>
+</body>
+</html>
