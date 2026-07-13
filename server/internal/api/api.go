@@ -19,8 +19,9 @@ type PeerSource interface {
 	Peers() []discovery.Peer
 }
 
-// New, /healthz ve /api/* uçlarını içeren bir handler döner.
-func New(name, version string, peers PeerSource) http.Handler {
+// New, /healthz ve /api/* uçlarını içeren bir handler döner. fp, TLS
+// sertifikasının SHA-256 parmak izidir (TLS kapalıysa boş).
+func New(name, version, fp string, peers PeerSource) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -32,6 +33,7 @@ func New(name, version string, peers PeerSource) http.Handler {
 			"name":    name,
 			"version": version,
 			"caps":    []string{"mirror", "multi"},
+			"fp":      fp,
 		})
 	})
 

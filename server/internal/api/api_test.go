@@ -16,7 +16,7 @@ type fakePeers struct{ list []discovery.Peer }
 func (f fakePeers) Peers() []discovery.Peer { return f.list }
 
 func newAPI(peers []discovery.Peer) http.Handler {
-	return New("test-cihaz", "0.2-test", fakePeers{peers})
+	return New("test-cihaz", "0.2-test", "abc123fp", fakePeers{peers})
 }
 
 func get(t *testing.T, h http.Handler, path string) *httptest.ResponseRecorder {
@@ -39,11 +39,12 @@ func TestInfo(t *testing.T) {
 		Name    string   `json:"name"`
 		Version string   `json:"version"`
 		Caps    []string `json:"caps"`
+		FP      string   `json:"fp"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.Name != "test-cihaz" || got.Version != "0.2-test" || len(got.Caps) == 0 {
+	if got.Name != "test-cihaz" || got.Version != "0.2-test" || len(got.Caps) == 0 || got.FP != "abc123fp" {
 		t.Fatalf("info alanları eksik: %+v", got)
 	}
 }

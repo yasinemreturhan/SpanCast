@@ -12,9 +12,13 @@ const client = new SignalClient(
   `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?role=receiver`,
 );
 
-client.on('pin', msg => {
+client.on('pin', async msg => {
   $('pinBox').textContent = msg.pin;
-  const pairUrl = `ushare://pair?host=${location.hostname}&port=${location.port}&pin=${msg.pin}`;
+  // Sertifika parmak izi QR'a gömülür → okutulan cihaz TLS pinning yapabilir.
+  let fp = '';
+  try { fp = (await (await fetch('/api/info')).json()).fp ?? ''; } catch {}
+  const pairUrl = `ushare://pair?host=${location.hostname}&port=${location.port}&pin=${msg.pin}`
+    + (fp ? `&fp=${fp}` : '');
   $('qr').src = `/api/qr?data=${encodeURIComponent(pairUrl)}`;
   $('qr').style.display = 'inline-block';
   status('Gönderen bekleniyor…');
