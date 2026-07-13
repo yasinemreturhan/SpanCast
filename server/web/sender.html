@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UniversalShare — Ekranımı Paylaş</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background:#0f1117; color:#e6e6e6;
+         display:flex; flex-direction:column; align-items:center; gap:20px; padding:48px 16px; }
+  .pinrow { display:flex; gap:8px; }
+  .pinbox { width:48px; height:60px; font-size:32px; text-align:center; border-radius:12px;
+            border:1px solid #2a3040; background:#1b1f2a; color:#fff; }
+  .pinbox:focus { border-color:#4f8cff; outline:none; }
+  input[type=text] { padding:10px 14px; border-radius:10px; border:1px solid #2a3040;
+                     background:#1b1f2a; color:#fff; width:288px; }
+  button { font-size:18px; padding:12px 32px; border-radius:12px; border:0;
+           background:#4f8cff; color:#fff; cursor:pointer; }
+  button:disabled { background:#2a3040; cursor:default; }
+  #stopBtn { display:none; background:#e5484d; }
+  #status { color:#9aa3b2; min-height:24px; }
+  video { max-width:480px; width:100%; border-radius:12px; border:1px solid #2a3040; }
+</style>
+</head>
+<body>
+  <h2>📤 Ekranımı Paylaş</h2>
+  <input id="deviceName" type="text" placeholder="Cihaz adı (örn. Laptop)" maxlength="24">
+  <p style="margin:0;color:#9aa3b2">Alıcı ekranındaki 6 haneli kodu gir:</p>
+  <div class="pinrow">
+    <input class="pinbox" inputmode="numeric" autofocus>
+    <input class="pinbox" inputmode="numeric">
+    <input class="pinbox" inputmode="numeric">
+    <input class="pinbox" inputmode="numeric">
+    <input class="pinbox" inputmode="numeric">
+    <input class="pinbox" inputmode="numeric">
+  </div>
+  <div>
+    <button id="startBtn">Paylaşımı Başlat</button>
+    <button id="stopBtn">Durdur</button>
+  </div>
+  <div id="status"></div>
+  <video id="preview" autoplay muted playsinline></video>
+  <script type="module" src="js/sender.js"></script>
+</body>
+</html>
