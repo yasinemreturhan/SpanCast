@@ -20,10 +20,25 @@
   #stopBtn { display:none; background:#e5484d; }
   #status { color:#9aa3b2; min-height:24px; }
   video { max-width:480px; width:100%; border-radius:12px; border:1px solid #2a3040; }
+  #trustBadge { display:none; border:1px solid #22c55e33; background:#0d2010; border-radius:12px;
+                padding:12px 20px; margin-bottom:4px; }
+  #trustBadge button { font-size:16px; padding:10px 24px; }
+  #trustBadge .forget { font-size:12px; background:none; color:#6f7a8a; padding:4px 8px; border:0;
+                        cursor:pointer; margin-left:8px; }
+  #trustBadge .forget:hover { color:#e5484d; }
 </style>
 </head>
 <body>
   <h2>📤 Ekranımı Paylaş</h2>
+
+  <!-- Kayıtlı cihaz rozeti — sender.js tarafından gösterilir/gizlenir -->
+  <div id="trustBadge">
+    <span style="color:#22c55e;font-size:14px">🔒 Bu cihaz kayıtlı</span>
+    <br>
+    <button onclick="startWithToken?.()">PIN olmadan bağlan</button>
+    <button class="forget" id="forgetBtn">Kaydı sil</button>
+  </div>
+
   <input id="deviceName" type="text" placeholder="Cihaz adı (örn. Laptop)" maxlength="24">
   <p style="margin:0;color:#9aa3b2">Alıcı ekranındaki 6 haneli kodu gir:</p>
   <div class="pinrow">

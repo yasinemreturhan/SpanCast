@@ -5,11 +5,17 @@
 package signal
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"sync"
 
 	"github.com/yasinemreturhan/DoScreen/server/internal/room"
 )
+
+// ErrBadToken: sunulan güvenilir cihaz jetonu geçersiz veya süresi dolmuş.
+var ErrBadToken = errors.New("güvenilir cihaz jetonu geçersiz")
 
 // Message: tarafların konuştuğu tek zarf tipi.
 type Message struct {
@@ -60,14 +66,16 @@ func (ss *SenderSession) ID() string { return ss.sender.ID }
 type Hub struct {
 	rooms *room.Manager
 
-	mu       sync.Mutex
-	sessions map[*room.Room]*ReceiverSession
+	mu          sync.Mutex
+	sessions    map[*room.Room]*ReceiverSession
+	trustTokens map[string]*ReceiverSession // token → receiver oturumu
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		rooms:    room.NewManager(),
-		sessions: map[*room.Room]*ReceiverSession{},
+		rooms:       room.NewManager(),
+		sessions:    map[*room.Room]*ReceiverSession{},
+		trustTokens: map[string]*ReceiverSession{},
 	}
 }
 
@@ -164,6 +172,47 @@ func (h *Hub) ReceiverGone(rs *ReceiverSession) {
 	}
 	h.mu.Lock()
 	delete(h.sessions, rs.rm)
+	// Alıcı oturumu kapandığında ilişkili tüm güven jetonları geçersiz olur.
+	for tok, session := range h.trustTokens {
+		if session == rs {
+			delete(h.trustTokens, tok)
+		}
+	}
 	h.mu.Unlock()
 	h.rooms.Close(rs.rm)
+}
+
+// IssueToken: başarılı PIN doğrulaması sonrası bu gönderici için 256-bit
+// güven jetonu üretir ve alıcı oturumuna bağlar.
+func (h *Hub) IssueToken(ss *SenderSession) (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	tok := hex.EncodeToString(b)
+	h.mu.Lock()
+	h.trustTokens[tok] = ss.receiver
+	h.mu.Unlock()
+	return tok, nil
+}
+
+// JoinByToken: geçerli bir güven jetonuyla göndericiyi odaya ekler; PIN
+// doğrulaması atlanır. Jeton geçersizse veya alıcı kapandıysa ErrBadToken döner.
+func (h *Hub) JoinByToken(token, name string, conn Conn) (*SenderSession, error) {
+	h.mu.Lock()
+	rs := h.trustTokens[token]
+	h.mu.Unlock()
+	if rs == nil || rs.isClosed() {
+		return nil, ErrBadToken
+	}
+	s, err := rs.rm.AddSender(name)
+	if err != nil {
+		return nil, err
+	}
+	ss := &SenderSession{sender: s, conn: conn, receiver: rs}
+	rs.mu.Lock()
+	rs.senders[s.ID] = ss
+	rs.mu.Unlock()
+	rs.conn.Send(Message{Type: "joined", From: s.ID, Name: name})
+	return ss, nil
 }

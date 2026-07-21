@@ -12,6 +12,29 @@ let client = null;
 let pc = null;
 let stream = null;
 
+// ─── Güvenilir cihaz (TOFU) ─────────────────────────────────────────────────
+const TRUST_KEY = `ushare_trust_${location.host}`;
+
+function loadToken()  { try { return localStorage.getItem(TRUST_KEY) || null; } catch { return null; } }
+function saveToken(t) { try { localStorage.setItem(TRUST_KEY, t); } catch {} }
+function clearToken() { try { localStorage.removeItem(TRUST_KEY); } catch {} }
+
+// Kayıtlı cihaz rozeti: token varsa göster.
+function refreshTrustBadge() {
+  const badge = $('trustBadge');
+  if (!badge) return;
+  const tok = loadToken();
+  badge.style.display = tok ? 'block' : 'none';
+}
+// Rozete tıklanınca PIN adımı atlanır.
+window.addEventListener('DOMContentLoaded', () => {
+  refreshTrustBadge();
+  const badge = $('trustBadge');
+  if (badge) badge.onclick = () => startWithToken();
+  const forgetBtn = $('forgetBtn');
+  if (forgetBtn) forgetBtn.onclick = () => { clearToken(); refreshTrustBadge(); status('Cihaz kaydı silindi.'); };
+});
+
 // --- 6 kutulu PIN girişi -----------------------------------------------------
 const boxes = [...document.querySelectorAll('.pinbox')];
 boxes.forEach((b, i) => {
@@ -69,13 +92,13 @@ async function buildPeer() {
 }
 
 // --- Başlat / durdur ---------------------------------------------------------
+
+// PIN ile başlatma (normal akış).
 $('startBtn').onclick = async () => {
   const pin = pinValue();
   if (!/^\d{6}$/.test(pin)) return status('6 haneli PIN gerekli.');
 
-  try {
-    stream = await captureScreen();
-  } catch (e) {
+  try { stream = await captureScreen(); } catch (e) {
     return status('Ekran yakalama iptal edildi: ' + e.message);
   }
   $('preview').srcObject = stream;
@@ -88,27 +111,71 @@ $('startBtn').onclick = async () => {
     `${proto}://${location.host}/ws?role=sender&name=${encodeURIComponent(name)}`,
   );
 
-  // Kimlik doğrulama: sunucunun salt'ına PIN'le HMAC proof üret.
+  // Kimlik doğrulama: challenge'a PIN ile HMAC proof gönder.
   client.on('challenge', async msg => {
     const proof = await pinProof(pin, msg.payload.salt);
     client.send({ type: 'auth', payload: { proof } });
   });
-  client.on('paired', () => { status('Eşleşti, akış kuruluyor…'); buildPeer(); });
-  client.on('answer', msg => pc?.setRemoteDescription(msg.payload));
-  client.on('ice', msg => pc?.addIceCandidate(msg.payload).catch(() => {}));
+  client.on('paired', msg => {
+    // Başarılı PIN doğrulamasından sonra sunucu güven jetonu gönderir; sakla.
+    if (msg.payload?.token) { saveToken(msg.payload.token); refreshTrustBadge(); }
+    status('Eşleşti, akış kuruluyor…');
+    buildPeer();
+  });
+  attachCommonHandlers();
+  client.connect();
+  stream.getVideoTracks()[0].onended = stop;
+};
+
+// Kayıtlı cihaz ile başlatma (token akışı — PIN gerekmez).
+async function startWithToken() {
+  const tok = loadToken();
+  if (!tok) return;
+
+  try { stream = await captureScreen(); } catch (e) {
+    return status('Ekran yakalama iptal edildi: ' + e.message);
+  }
+  $('preview').srcObject = stream;
+  $('startBtn').disabled = true;
+  $('stopBtn').style.display = 'inline-block';
+
+  const name = $('deviceName').value.trim() || 'Tarayıcı';
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  client = new SignalClient(
+    `${proto}://${location.host}/ws?role=sender&name=${encodeURIComponent(name)}`,
+  );
+
+  client.on('challenge', () => {
+    // challenge alındığında auth yerine trust gönder.
+    client.send({ type: 'trust', payload: { token: tok } });
+  });
+  client.on('paired', () => {
+    status('🔒 Kayıtlı cihaz olarak bağlandı, akış kuruluyor…');
+    buildPeer();
+  });
+  // Jeton reddedilirse sil ve kullanıcıya PIN ile devam etmesini söyle.
   client.on('error', msg => {
+    if (msg.reason === 'bad-token') {
+      clearToken(); refreshTrustBadge();
+      stop();
+      return status('❌ Cihaz kaydı sona erdi. Lütfen PIN ile bağlan.');
+    }
     const errs = {
-      'bad-pin': 'PIN hatalı.', 'pin-expired': 'PIN süresi dolmuş — alıcıda yeni kod alın.',
       'room-full': 'Oda dolu (en fazla 4 kaynak).', 'receiver-gone': 'Alıcı kapandı.',
     };
     status('❌ ' + (errs[msg.reason] ?? msg.reason));
     stop();
   });
+  attachCommonHandlers();
   client.on('_close', () => status('Bağlantı koptu, yeniden deneniyor…'));
   client.connect();
+  stream.getVideoTracks()[0].onended = stop;
+}
 
-  stream.getVideoTracks()[0].onended = stop; // kullanıcı paylaşımı tarayıcıdan keserse
-};
+function attachCommonHandlers() {
+  client.on('answer', msg => pc?.setRemoteDescription(msg.payload));
+  client.on('ice', msg => pc?.addIceCandidate(msg.payload).catch(() => {}));
+}
 
 function stop() {
   client?.close();

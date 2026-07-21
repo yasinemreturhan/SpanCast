@@ -126,37 +126,71 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		salt := signal.NewSalt()
 		conn.Send(signal.Message{Type: "challenge", Payload: mustJSON(map[string]string{"salt": salt})})
 
-		var auth signal.Message
+		var authMsg signal.Message
 		c.SetReadDeadline(time.Now().Add(30 * time.Second))
-		if err := c.ReadJSON(&auth); err != nil || auth.Type != "auth" {
+		if err := c.ReadJSON(&authMsg); err != nil {
 			conn.Close()
 			return
 		}
-		c.SetReadDeadline(time.Time{}) // doğrulama sonrası süresiz
-		var proof struct {
-			Proof string `json:"proof"`
-		}
-		json.Unmarshal(auth.Payload, &proof)
+		c.SetReadDeadline(time.Time{})
 
-		ss, err := h.hub.JoinByProof(salt, proof.Proof, name, conn)
-		if err != nil {
-			reason := "join-failed"
-			switch {
-			case errors.Is(err, room.ErrNotFound):
-				reason = "bad-pin"
-				h.limiter.Fail(ip)
-			case errors.Is(err, room.ErrExpired):
-				reason = "pin-expired"
-			case errors.Is(err, room.ErrRoomFull):
-				reason = "room-full"
+		var ss *signal.SenderSession
+
+		switch authMsg.Type {
+		case "trust":
+			// Güvenilir cihaz — PIN doğrulaması atlanır, jeton kontrol edilir.
+			var body struct {
+				Token string `json:"token"`
 			}
-			// Bu noktada kuyrukta mesaj yok ve hub bağlantıyı tutmuyor;
-			// doğrudan yazmak yarışsızdır ve kapanmadan önce iletimi garantiler.
-			c.WriteJSON(signal.Message{Type: "error", Reason: reason})
+			json.Unmarshal(authMsg.Payload, &body)
+			var err error
+			ss, err = h.hub.JoinByToken(body.Token, name, conn)
+			if err != nil {
+				reason := "bad-token"
+				if errors.Is(err, room.ErrRoomFull) {
+					reason = "room-full"
+				}
+				c.WriteJSON(signal.Message{Type: "error", Reason: reason})
+				conn.Close()
+				return
+			}
+			conn.Send(signal.Message{Type: "paired", From: ss.ID()})
+
+		case "auth":
+			// Normal PIN challenge-response akışı.
+			var proof struct {
+				Proof string `json:"proof"`
+			}
+			json.Unmarshal(authMsg.Payload, &proof)
+			var err error
+			ss, err = h.hub.JoinByProof(salt, proof.Proof, name, conn)
+			if err != nil {
+				reason := "join-failed"
+				switch {
+				case errors.Is(err, room.ErrNotFound):
+					reason = "bad-pin"
+					h.limiter.Fail(ip)
+				case errors.Is(err, room.ErrExpired):
+					reason = "pin-expired"
+				case errors.Is(err, room.ErrRoomFull):
+					reason = "room-full"
+				}
+				c.WriteJSON(signal.Message{Type: "error", Reason: reason})
+				conn.Close()
+				return
+			}
+			// Başarılı PIN doğrulaması sonrası güven jetonu üret.
+			pairedPayload := json.RawMessage(`null`)
+			if tok, err := h.hub.IssueToken(ss); err == nil {
+				pairedPayload = mustJSON(map[string]string{"token": tok})
+			}
+			conn.Send(signal.Message{Type: "paired", From: ss.ID(), Payload: pairedPayload})
+
+		default:
 			conn.Close()
 			return
 		}
-		conn.Send(signal.Message{Type: "paired", From: ss.ID()})
+
 		for {
 			var m signal.Message
 			if err := c.ReadJSON(&m); err != nil {

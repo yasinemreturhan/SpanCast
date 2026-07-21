@@ -139,6 +139,55 @@ func TestBadPinRejected(t *testing.T) {
 	}
 }
 
+func TestTrustToken(t *testing.T) {
+	h, _, sess := setupRoom(t)
+	sc := &fakeConn{}
+	ss, err := h.JoinRoom(sess.PIN(), "laptop", sc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tok, err := h.IssueToken(ss)
+	if err != nil {
+		t.Fatalf("IssueToken hata: %v", err)
+	}
+	if len(tok) != 64 { // 32 bayt → 64 hex karakter
+		t.Fatalf("jeton uzunluğu yanlış: %d", len(tok))
+	}
+
+	// Yeni sender jeton ile katılabilmeli.
+	sc2 := &fakeConn{}
+	ss2, err := h.JoinByToken(tok, "tablet", sc2)
+	if err != nil {
+		t.Fatalf("JoinByToken hata: %v", err)
+	}
+	if ss2 == nil {
+		t.Fatal("JoinByToken nil döndü")
+	}
+}
+
+func TestTrustTokenInvalidRejected(t *testing.T) {
+	h := NewHub()
+	_, err := h.JoinByToken("deadbeef", "x", &fakeConn{})
+	if err == nil {
+		t.Fatal("geçersiz jeton reddedilmeliydi")
+	}
+}
+
+func TestTrustTokenRevokedOnReceiverGone(t *testing.T) {
+	h, _, sess := setupRoom(t)
+	sc := &fakeConn{}
+	ss, _ := h.JoinRoom(sess.PIN(), "laptop", sc)
+	tok, _ := h.IssueToken(ss)
+
+	h.ReceiverGone(sess)
+
+	_, err := h.JoinByToken(tok, "tablet", &fakeConn{})
+	if err == nil {
+		t.Fatal("alıcı kapandıktan sonra jeton geçersiz olmalı")
+	}
+}
+
 func TestRegeneratePIN(t *testing.T) {
 	h, recv, sess := setupRoom(t)
 	old := sess.PIN()

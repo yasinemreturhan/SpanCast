@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="https://universalshare.io/receiver"
+        version="0.3.0">
+
+  <name>UniversalShare</name>
+  <icon src="icon.png"/>
+  <content src="index.html"/>
+  <author>UniversalShare</author>
+  <description>Ekran alıcısı — Samsung Tizen TV</description>
+
+  <tizen:application id="com.universalshare.receiver" package="USHARE001"
+                     required_version="6.0" type="webapp"/>
+
+  <!-- Ağ erişimi zorunlu -->
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:privilege name="http://tizen.org/privilege/network.get"/>
+
+  <!-- TV remote key events -->
+  <tizen:setting scroll="disable" screen-orientation="landscape" background-support="disable"/>
+
+  <feature name="http://tizen.org/feature/network.wifi"/>
+</widget>

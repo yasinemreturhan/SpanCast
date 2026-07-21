@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>UniversalShare</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'SamsungOne', system-ui, sans-serif;
+         background: #0f1117; color: #e6e6e6; margin: 0;
+         display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .panel { text-align: center; width: 560px; }
+  h1 { color: #4f8cff; font-size: 52px; margin-bottom: 8px; }
+  p  { color: #9aa3b2; font-size: 22px; margin: 0 0 24px; }
+  .field { margin-bottom: 16px; }
+  label { display: block; text-align: left; color: #9aa3b2; font-size: 18px; margin-bottom: 6px; }
+  input { font-size: 26px; padding: 14px 20px; width: 100%; border-radius: 14px;
+          border: 2px solid #2a3040; background: #1b1f2a; color: #fff; }
+  input:focus { border-color: #4f8cff; outline: none; }
+  button { font-size: 24px; padding: 14px 0; width: 100%; margin-top: 8px;
+           border-radius: 14px; border: 0; cursor: pointer; }
+  #connectBtn { background: #4f8cff; color: #fff; }
+  #connectBtn:focus { outline: 3px solid #fff; }
+  #status { min-height: 28px; margin-top: 16px; color: #e5484d; font-size: 18px; }
+  iframe { position: fixed; inset: 0; width: 100vw; height: 100vh; border: 0;
+           display: none; background: #000; }
+  /* Samsung remote: highlight focused elements */
+  :focus { outline: 3px solid #4f8cff; }
+</style>
+</head>
+<body>
+  <div class="panel" id="panel">
+    <h1>UniversalShare</h1>
+    <p>Ekran gönderen cihazdaki sunucuya bağlan</p>
+    <div class="field">
+      <label for="addr">Sunucu Adresi</label>
+      <input id="addr" type="text" placeholder="örn. 192.168.1.20:8788" autocomplete="off">
+    </div>
+    <button id="connectBtn">Bağlan</button>
+    <p id="status"></p>
+  </div>
+  <iframe id="view" allow="autoplay; encrypted-media; fullscreen"></iframe>
+
+<script>
+(function () {
+  var addr = document.getElementById('addr');
+  var status = document.getElementById('status');
+  var panel = document.getElementById('panel');
+  var view = document.getElementById('view');
+
+  // Kayıtlı sunucu adresini hatırla
+  try { addr.value = localStorage.getItem('ushare_server') || ''; } catch (e) {}
+
+  // Samsung remote OK tuşu = Enter
+  addr.addEventListener('keydown', function (e) {
+    if (e.keyCode === 13) connect();
+  });
+
+  document.getElementById('connectBtn').addEventListener('click', connect);
+
+  function connect() {
+    var host = addr.value.trim();
+    if (!host) { status.textContent = 'Adres gerekli'; return; }
+    try { localStorage.setItem('ushare_server', host); } catch (e) {}
+
+    status.textContent = 'Bağlanılıyor…';
+    var url = 'https://' + host + '/receiver.html';
+
+    // iframe üzerinden yükle; Tizen tarayıcısı self-signed sertifikayı
+    // ilk açılışta onaylatır (webOS ile aynı davranış).
+    view.src = url;
+    view.style.display = 'block';
+    panel.style.display = 'none';
+
+    // iframe yüklenemezse (sertifika reddi) panele geri dön
+    var timeout = setTimeout(function () {
+      try {
+        var _ = view.contentDocument.title;
+        // Yüklenmiş, timeout iptal
+        clearTimeout(timeout);
+      } catch (e) {
+        // cross-origin = yüklendi (HTTPS kabul edildi)
+        clearTimeout(timeout);
+      }
+    }, 8000);
+
+    view.addEventListener('error', function () {
+      view.style.display = 'none';
+      panel.style.display = 'block';
+      status.textContent = 'Bağlantı hatası — adres veya sertifika reddedildi';
+    });
+  }
+
+  // Tizen uzaktan kumanda: ← tuşu ile panele dön
+  document.addEventListener('keydown', function (e) {
+    if (e.keyCode === 10009 || e.keyCode === 8) { // RETURN / BACK
+      if (view.style.display !== 'none') {
+        view.style.display = 'none';
+        panel.style.display = 'block';
+        view.src = 'about:blank';
+        status.textContent = '';
+        addr.focus();
+      }
+    }
+  });
+
+  // İlk odak
+  addr.focus();
+})();
+</script>
+</body>
+</html>
