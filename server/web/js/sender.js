@@ -3,6 +3,7 @@
 // yeniden bağlanır ve akış yeniden kurulur.
 import { SignalClient } from './signal.js';
 import { pinProof } from './pair.js';
+import { fetchIceServers } from './ice.js';
 
 const $ = id => document.getElementById(id);
 const status = m => { $('status').textContent = m; };
@@ -43,7 +44,8 @@ async function captureScreen() {
 
 async function buildPeer() {
   pc?.close();
-  pc = new RTCPeerConnection({ iceServers: [] }); // LAN: STUN gereksiz
+  const iceServers = await fetchIceServers();
+  pc = new RTCPeerConnection({ iceServers });
   stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
   pc.getSenders().forEach(s => {

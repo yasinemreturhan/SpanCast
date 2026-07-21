@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src *; script-src 'self'; style-src 'self' 'unsafe-inline'">
+<title>UniversalShare</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e6e6e6;
+         margin: 0; padding: 0; height: 100vh; overflow: hidden; }
+
+  /* Adımlar */
+  .step { display: none; flex-direction: column; align-items: center; justify-content: center;
+          height: 100vh; gap: 16px; padding: 32px; text-align: center; }
+  .step.active { display: flex; }
+
+  h2 { color: #4f8cff; margin: 0 0 4px; font-size: 22px; }
+  p  { color: #9aa3b2; margin: 0; font-size: 14px; }
+
+  input[type=text] { padding: 10px 14px; border-radius: 10px; border: 1px solid #2a3040;
+                     background: #1b1f2a; color: #fff; width: 300px; font-size: 15px; }
+  input[type=text]:focus { border-color: #4f8cff; outline: none; }
+
+  .btn { font-size: 15px; padding: 10px 28px; border-radius: 10px; border: 0;
+         background: #4f8cff; color: #fff; cursor: pointer; }
+  .btn:disabled { background: #2a3040; cursor: default; }
+  .btn.danger { background: #e5484d; }
+
+  /* Kaynak seçici */
+  #sourceGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+                max-height: 340px; overflow-y: auto; width: 100%; }
+  .src-card { background: #1b1f2a; border: 2px solid #2a3040; border-radius: 10px;
+              cursor: pointer; padding: 8px; text-align: center; transition: border-color .15s; }
+  .src-card:hover, .src-card.selected { border-color: #4f8cff; }
+  .src-card img { width: 100%; border-radius: 6px; aspect-ratio: 16/9; object-fit: cover; }
+  .src-card span { display: block; font-size: 11px; color: #9aa3b2; margin-top: 4px;
+                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* PIN */
+  .pinrow { display: flex; gap: 8px; }
+  .pinbox { width: 44px; height: 56px; font-size: 28px; text-align: center; border-radius: 10px;
+            border: 1px solid #2a3040; background: #1b1f2a; color: #fff; }
+  .pinbox:focus { border-color: #4f8cff; outline: none; }
+
+  #statusMsg { color: #9aa3b2; font-size: 13px; min-height: 18px; }
+  #fpBadge { font-size: 10px; font-family: monospace; color: #4a5568; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Adım 1: Sunucu bağlantısı -->
+<div class="step active" id="step-connect">
+  <h2>🖥 UniversalShare</h2>
+  <p>Alıcı cihazda çalışan sunucuya bağlan</p>
+  <input id="serverAddr" type="text" placeholder="örn. 192.168.1.20:8788" autocomplete="off">
+  <button class="btn" id="connectBtn">Bağlan</button>
+  <p id="connectErr" style="color:#e5484d;font-size:13px;min-height:18px;"></p>
+</div>
+
+<!-- Adım 2: Ekran/pencere seçimi -->
+<div class="step" id="step-source">
+  <h2>Kaynak Seç</h2>
+  <p>Hangi ekranı veya pencereyi paylaşmak istiyorsun?</p>
+  <div id="sourceGrid"></div>
+  <div style="display:flex;gap:12px;margin-top:4px;">
+    <button class="btn" id="backBtn" style="background:#2a3040">← Geri</button>
+    <button class="btn" id="selectBtn" disabled>Seç →</button>
+  </div>
+</div>
+
+<!-- Adım 3: PIN girişi -->
+<div class="step" id="step-pin">
+  <h2>PIN Gir</h2>
+  <p>Alıcı ekranındaki 6 haneli kodu gir</p>
+  <div class="pinrow">
+    <input class="pinbox" inputmode="numeric" maxlength="1">
+    <input class="pinbox" inputmode="numeric" maxlength="1">
+    <input class="pinbox" inputmode="numeric" maxlength="1">
+    <input class="pinbox" inputmode="numeric" maxlength="1">
+    <input class="pinbox" inputmode="numeric" maxlength="1">
+    <input class="pinbox" inputmode="numeric" maxlength="1">
+  </div>
+  <button class="btn" id="shareBtn" disabled>Paylaşımı Başlat</button>
+  <div id="fpBadge"></div>
+</div>
+
+<!-- Adım 4: Paylaşım aktif -->
+<div class="step" id="step-sharing">
+  <h2 style="color:#22c55e">🟢 Yayında</h2>
+  <p id="sharingInfo"></p>
+  <div id="statusMsg"></div>
+  <button class="btn danger" id="stopBtn">Paylaşımı Durdur</button>
+</div>
+
+<script src="renderer.js"></script>
+</body>
+</html>

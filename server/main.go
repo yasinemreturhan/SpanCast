@@ -30,6 +30,10 @@ func main() {
 	name := flag.String("name", "", "cihaz adı (varsayılan: hostname)")
 	noTLS := flag.Bool("no-tls", false, "TLS'siz çalış (yalnız geliştirme)")
 	certDir := flag.String("cert-dir", defaultCertDir(), "TLS sertifika dizini")
+	stunURL := flag.String("stun", "stun:stun.l.google.com:19302", "STUN sunucu URL (boş=kapalı)")
+	turnURL := flag.String("turn", "", "TURN sunucu URL (örn. turn:hostname:3478)")
+	turnUser := flag.String("turn-user", "", "TURN kullanıcı adı")
+	turnPass := flag.String("turn-pass", "", "TURN şifresi")
 	flag.Parse()
 
 	if *name == "" {
@@ -52,6 +56,19 @@ func main() {
 	// Signaling.
 	hub := signal.NewHub()
 
+	// ICE sunucuları: STUN (varsayılan açık) + opsiyonel TURN.
+	var iceServers []api.ICEServer
+	if *stunURL != "" {
+		iceServers = append(iceServers, api.ICEServer{URLs: []string{*stunURL}})
+	}
+	if *turnURL != "" {
+		iceServers = append(iceServers, api.ICEServer{
+			URLs:       []string{*turnURL},
+			Username:   *turnUser,
+			Credential: *turnPass,
+		})
+	}
+
 	// HTTP yönlendirme.
 	mux := http.NewServeMux()
 	web, err := fs.Sub(webFS, "web")
@@ -62,7 +79,7 @@ func main() {
 	if ident != nil {
 		fp = ident.Fingerprint
 	}
-	apiHandler := api.New(*name, version, fp, disc)
+	apiHandler := api.New(*name, version, fp, disc, iceServers)
 	mux.Handle("/", http.FileServer(http.FS(web)))
 	mux.Handle("/ws", ws.NewHandler(hub))
 	mux.Handle("/healthz", apiHandler)

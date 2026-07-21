@@ -2,6 +2,7 @@
 // RTCPeerConnection kurar ve akışları CSS grid'de karo olarak yerleştirir.
 import { SignalClient } from './signal.js';
 import { gridFor } from './layout.js';
+import { fetchIceServers } from './ice.js';
 
 const $ = id => document.getElementById(id);
 const status = m => { $('status').textContent = m; };
@@ -45,8 +46,9 @@ client.on('ice', msg => {
 client.on('left', msg => removeTile(msg.from));
 client.on('_close', () => status('Bağlantı koptu, yeniden deneniyor…'));
 
-function addTile(id, name) {
-  const pc = new RTCPeerConnection({ iceServers: [] }); // LAN: STUN gereksiz
+async function addTile(id, name) {
+  const iceServers = await fetchIceServers();
+  const pc = new RTCPeerConnection({ iceServers });
 
   const el = document.createElement('div');
   el.className = 'tile';

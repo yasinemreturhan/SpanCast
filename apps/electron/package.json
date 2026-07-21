@@ -1,0 +1,37 @@
+{
+  "name": "universalshare-sender",
+  "version": "0.3.0",
+  "description": "UniversalShare — masaüstü gönderici (Windows, macOS, Linux)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "dist": "electron-builder --win --mac --linux"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.universalshare.sender",
+    "productName": "UniversalShare",
+    "files": ["main.js", "preload.js", "index.html", "renderer.js"],
+    "win": {
+      "target": [{ "target": "nsis" }, { "target": "portable" }],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": [{ "target": "dmg" }],
+      "icon": "assets/icon.icns",
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist"
+    },
+    "linux": {
+      "target": [{ "target": "AppImage" }, { "target": "deb" }],
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    }
+  }
+}

@@ -19,9 +19,20 @@ type PeerSource interface {
 	Peers() []discovery.Peer
 }
 
+// ICEServer: tek bir WebRTC ICE sunucusu (STUN veya TURN).
+type ICEServer struct {
+	URLs       []string `json:"urls"`
+	Username   string   `json:"username,omitempty"`
+	Credential string   `json:"credential,omitempty"`
+}
+
 // New, /healthz ve /api/* uçlarını içeren bir handler döner. fp, TLS
-// sertifikasının SHA-256 parmak izidir (TLS kapalıysa boş).
-func New(name, version, fp string, peers PeerSource) http.Handler {
+// sertifikasının SHA-256 parmak izidir (TLS kapalıysa boş). iceServers
+// nil ise boş liste döner.
+func New(name, version, fp string, peers PeerSource, iceServers []ICEServer) http.Handler {
+	if iceServers == nil {
+		iceServers = []ICEServer{}
+	}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -35,6 +46,10 @@ func New(name, version, fp string, peers PeerSource) http.Handler {
 			"caps":    []string{"mirror", "multi"},
 			"fp":      fp,
 		})
+	})
+
+	mux.HandleFunc("GET /api/ice", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, map[string]any{"iceServers": iceServers})
 	})
 
 	mux.HandleFunc("GET /api/peers", func(w http.ResponseWriter, _ *http.Request) {

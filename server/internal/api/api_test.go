@@ -16,7 +16,7 @@ type fakePeers struct{ list []discovery.Peer }
 func (f fakePeers) Peers() []discovery.Peer { return f.list }
 
 func newAPI(peers []discovery.Peer) http.Handler {
-	return New("test-cihaz", "0.2-test", "abc123fp", fakePeers{peers})
+	return New("test-cihaz", "0.2-test", "abc123fp", fakePeers{peers}, nil)
 }
 
 func get(t *testing.T, h http.Handler, path string) *httptest.ResponseRecorder {
@@ -92,5 +92,44 @@ func TestQRMissingData(t *testing.T) {
 	rec := get(t, newAPI(nil), "/api/qr")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("400 bekleniyordu: %d", rec.Code)
+	}
+}
+
+func TestIceEmpty(t *testing.T) {
+	rec := get(t, newAPI(nil), "/api/ice")
+	if rec.Code != 200 {
+		t.Fatalf("ice status: %d", rec.Code)
+	}
+	var got struct {
+		Servers []ICEServer `json:"iceServers"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Servers == nil || len(got.Servers) != 0 {
+		t.Fatalf("boş dizi bekleniyor: %+v", got.Servers)
+	}
+}
+
+func TestIceServers(t *testing.T) {
+	h := New("t", "0", "fp", fakePeers{nil}, []ICEServer{
+		{URLs: []string{"stun:stun.example.com:3478"}},
+		{URLs: []string{"turn:turn.example.com:3478"}, Username: "u", Credential: "p"},
+	})
+	rec := get(t, h, "/api/ice")
+	var got struct {
+		Servers []ICEServer `json:"iceServers"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Servers) != 2 {
+		t.Fatalf("2 sunucu bekleniyor: %+v", got.Servers)
+	}
+	if got.Servers[0].URLs[0] != "stun:stun.example.com:3478" {
+		t.Fatalf("STUN URL yanlış: %s", got.Servers[0].URLs[0])
+	}
+	if got.Servers[1].Username != "u" || got.Servers[1].Credential != "p" {
+		t.Fatalf("TURN kimlik bilgileri yanlış: %+v", got.Servers[1])
 	}
 }
