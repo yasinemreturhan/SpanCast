@@ -302,13 +302,16 @@
 
       <div class="cta-group">
         <a href="/DoScreen.apk" class="btn btn-primary" download>
-          <span>📥</span> Android APK İndir (DoScreen.apk)
+          <span>📱</span> Android APK İndir (Google TV & Telefon)
+        </a>
+        <a href="/DoScreen-Windows-x64.zip" class="btn btn-primary" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);" download>
+          <span>💻</span> Windows İndir (.exe / x64)
         </a>
         <a href="#guide" class="btn btn-secondary">
           <span>📖</span> Kurulum Rehberi
         </a>
       </div>
-      <div class="meta-info">Android 7.0+ · Google TV / Android TV / Telefon / Tablet Uyumlu · ~183 MB</div>
+      <div class="meta-info">Google TV / Android TV / Android Telefon / Windows 10 & 11 x64</div>
     </section>
 
     <div class="grid">
@@ -318,9 +321,24 @@
         <p>Tarayıcı tamponlarını devreden çıkaran native WebRTC motoru. LAN üzerinde &le; 40 ms tepki süresiyle fare hareketlerini anında hisset.</p>
       </div>
       <div class="card">
+        <div class="card-icon">🔍</div>
+        <h3>Otomatik Cihaz Keşfi</h3>
+        <p>UDP Beacon ile ağdaki Google TV veya alıcı bilgisayarlar otomatik bulunur. Listeden tek tıkla bağlanabilirsiniz.</p>
+      </div>
+      <div class="card">
         <div class="card-icon">🔒</div>
-        <h3>PIN ile Güvenli Eşleşme</h3>
-        <p>PIN ağdan asla düz metin geçmez. HMAC-SHA256 challenge-response doğrulaması ve kaba kuvvet saldırı korumasıyla güvenli eşleşme.</p>
+        <h3>Tek Tıkla Güvenli Bağlantı</h3>
+        <p>İlk seferde PIN girdikten sonra cihaz otomatik güvenilir listeye eklenir. Sonraki bağlantılarda PIN girmeden anında yansıtma başlar.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🪟</div>
+        <h3>Çoklu Ekran Grid (4 Cihaz)</h3>
+        <p>Aynı anda 4 farklı telefon veya bilgisayar tek televizyona yansıtılabilir (Yan yana veya 2x2 grid düzeni).</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔊</div>
+        <h3>Düşük Gecikmeli Ses İletimi</h3>
+        <p>Video görüntüsüyle senkronize Opus kodek audio akışı. İsteğe bağlı olarak tek tıkla açılıp kapatılabilir.</p>
       </div>
       <div class="card">
         <div class="card-icon">📺</div>
@@ -330,38 +348,21 @@
     </div>
 
     <section id="guide" class="steps-box">
-      <h2>Google TV / Android TV Hızlı Kurulum</h2>
+      <h2>Kurulum ve Kullanım Rehberi</h2>
       
-      <div class="step-item">
-        <div class="step-num">1</div>
-        <div class="step-text">
-          <h4>APK'yı İndirin</h4>
-          <p>Yukarıdaki <strong>"Android APK İndir"</strong> butonundan <code>DoScreen.apk</code> dosyasını bilgisayarınıza veya telefonunuza indirin.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 20px;">
+        <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 14px; border: 1px solid var(--border);">
+          <h3 style="color: var(--primary-light); margin-bottom: 12px;">📺 Google TV / Android TV</h3>
+          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">1. <code>DoScreen.apk</code> dosyasını indirin ve TV'nize ADB veya Send Files to TV ile kurun.</p>
+          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">2. TV'de DoScreen'i açın ve <strong>"Alıcı Modu"</strong>nda bırakın.</p>
+          <p style="font-size: 14px; color: var(--text-muted);">3. TV ekranında görünen 6 haneli PIN ve IP ile bilgisayarınızdan veya telefonunuzdan bağlanın.</p>
         </div>
-      </div>
 
-      <div class="step-item">
-        <div class="step-num">2</div>
-        <div class="step-text">
-          <h4>Google TV'ye Yükleyin (ADB ile)</h4>
-          <p>Google TV'de <em>Ayarlar &rarr; Sistem &rarr; Hakkında &rarr; Android TV OS derlemesi</em> üzerine 7 kez basarak geliştirici seçeneklerini açın. <em>Ağ üzerinden hata ayıklama</em>'yı aktif edin ve terminalden yükleyin:</p>
-          <p style="margin-top:6px;"><code>adb connect &lt;TV-IP&gt;:5555 && adb install DoScreen.apk</code></p>
-        </div>
-      </div>
-
-      <div class="step-item">
-        <div class="step-num">3</div>
-        <div class="step-text">
-          <h4>Alternatif: Dosya Yöneticisi veya USB</h4>
-          <p>APK'yı bir USB belleğe atıp veya TV'deki <em>Send Files to TV</em> uygulamasıyla gönderip TV'deki dosya yöneticisiyle tek tıkla yükleyebilirsiniz.</p>
-        </div>
-      </div>
-
-      <div class="step-item">
-        <div class="step-num">4</div>
-        <div class="step-text">
-          <h4>Bağlanın ve Yayınlayın</h4>
-          <p>TV'de DoScreen'i açın; ekrandaki 6 haneli PIN ve IP adresiyle telefonunuzdan veya bilgisayarınızdan anında yayını başlatın.</p>
+        <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 14px; border: 1px solid var(--border);">
+          <h3 style="color: #60a5fa; margin-bottom: 12px;">💻 Windows PC (Gönderici / Alıcı)</h3>
+          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">1. <code>DoScreen-Windows-x64.zip</code> dosyasını indirip bir klasöre çıkartın.</p>
+          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">2. <code>doscreen.exe</code> dosyasını çalıştırın.</p>
+          <p style="font-size: 14px; color: var(--text-muted);">3. <strong>"Yansıt"</strong> sekmesinde ağdaki TV veya monitörünüz otomatik gözükür, tek tıkla ekranınızı yansıtın.</p>
         </div>
       </div>
     </section>
