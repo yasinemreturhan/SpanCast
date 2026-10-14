@@ -26,7 +26,7 @@ class ScreenCaptureService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "DoScreen Canlı Yayın",
+                "SpanCast Canlı Yayın",
                 NotificationManager.IMPORTANCE_LOW
             )
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -34,7 +34,7 @@ class ScreenCaptureService : Service() {
         }
 
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("DoScreen Yayında")
+            .setContentTitle("SpanCast Yayında")
             .setContentText("Ekranınız kablosuz olarak paylaşılıyor.")
             .setSmallIcon(android.R.drawable.ic_menu_slideshow)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -137,7 +137,7 @@ class MainActivity : FlutterActivity() {
         airplayChannel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "startReceiver" -> {
-                    val name = call.argument<String>("name") ?: "DoScreen TV"
+                    val name = call.argument<String>("name") ?: "SpanCast TV"
                     AirPlayManager.start(this, name)
                     result.success(AirPlayManager.getStatusMap())
                 }

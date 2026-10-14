@@ -77,7 +77,7 @@ class AirPlayActivity : Activity(), SurfaceHolder.Callback {
             background = bg
 
             val titleView = TextView(this@AirPlayActivity).apply {
-                text = "📺 DoScreen • Mac Ekranı Aktif"
+                text = "📺 SpanCast • Mac Ekranı Aktif"
                 setTextColor(Color.WHITE)
                 textSize = 18f
                 typeface = Typeface.DEFAULT_BOLD

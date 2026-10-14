@@ -34,18 +34,18 @@ object AirPlayManager {
         private set
 
     @Volatile
-    var currentDeviceName: String = "DoScreen TV"
+    var currentDeviceName: String = "SpanCast TV"
         private set
 
     var onStateChangedCallback: ((Map<String, Any?>) -> Unit)? = null
 
-    fun start(context: Context, displayName: String = "DoScreen TV") {
+    fun start(context: Context, displayName: String = "SpanCast TV") {
         if (isRunning) {
             Logger.i("AirPlayManager: already running")
             return
         }
 
-        currentDeviceName = displayName.ifBlank { "DoScreen TV" }
+        currentDeviceName = displayName.ifBlank { "SpanCast TV" }
         Logger.i("AirPlayManager: starting receiver with name '$currentDeviceName'")
 
         val appContext = context.applicationContext

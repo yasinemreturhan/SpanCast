@@ -10,16 +10,16 @@ void main() async {
       'zeroPlayoutDelay': true,
     });
   } catch (_) {}
-  runApp(const DoScreenApp());
+  runApp(const SpanCastApp());
 }
 
-class DoScreenApp extends StatelessWidget {
-  const DoScreenApp({super.key});
+class SpanCastApp extends StatelessWidget {
+  const SpanCastApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'DoScreen',
+      title: 'SpanCast',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -74,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
             const SizedBox(width: 10),
             const Text(
-              'DoScreen',
+              'SpanCast',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ],

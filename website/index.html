@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DoScreen — Her Cihazdan Her Cihaza, Gecikmesiz Ekran Paylaşımı</title>
-  <meta name="description" content="DoScreen: Bilgisayardan Google TV'ye, telefondan monitöre tek tıkla ve ultra düşük gecikmeyle ekran yansıtma ve paylaşım platformu.">
+  <title>SpanCast — Her Cihazdan Her Cihaza, Gecikmesiz Ekran Paylaşımı & 2. Ekran</title>
+  <meta name="description" content="SpanCast: Bilgisayardan Google TV'ye, Mac'ten televizyona 2. monitör olarak bağlanma, telefondan monitöre tek tıkla ve ultra düşük gecikmeyle ekran yansıtma ekosistemi.">
   <meta name="theme-color" content="#06b6d4">
+  <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -16,6 +17,7 @@
       --primary-dark: #0891b2;
       --primary-light: #67e8f9;
       --accent: #3b82f6;
+      --accent-indigo: #6366f1;
       --bg: #090d16;
       --surface: #111827;
       --surface-card: #161e2e;
@@ -34,25 +36,25 @@
       overflow-x: hidden;
       min-height: 100vh;
       background-image: 
-        radial-gradient(circle at 20% 20%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
-        radial-gradient(circle at 50% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
+        radial-gradient(circle at 20% 15%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 25%, rgba(59, 130, 246, 0.14) 0%, transparent 40%),
+        radial-gradient(circle at 50% 85%, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
     }
 
     .container {
-      max-width: 1100px;
+      max-width: 1120px;
       margin: 0 auto;
       padding: 0 24px;
     }
 
     header {
-      padding: 22px 0;
+      padding: 18px 0;
       border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(9, 13, 22, 0.85);
+      background: rgba(9, 13, 22, 0.88);
     }
 
     .header-content {
@@ -64,23 +66,19 @@
     .logo {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-size: 22px;
+      gap: 14px;
+      font-size: 24px;
       font-weight: 800;
       color: var(--text);
       text-decoration: none;
+      letter-spacing: -0.5px;
     }
 
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
+    .logo img {
+      width: 42px;
+      height: 42px;
       border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+      box-shadow: 0 4px 16px rgba(6, 182, 212, 0.35);
     }
 
     .badge {
@@ -96,20 +94,20 @@
     }
 
     .hero {
-      padding: 70px 0 50px;
+      padding: 70px 0 40px;
       text-align: center;
     }
 
     h1 {
-      font-size: clamp(34px, 5.5vw, 56px);
+      font-size: clamp(34px, 5.5vw, 58px);
       font-weight: 900;
       line-height: 1.15;
       margin-bottom: 22px;
-      letter-spacing: -1px;
+      letter-spacing: -1.2px;
     }
 
     h1 span {
-      background: linear-gradient(135deg, var(--primary-light), var(--accent));
+      background: linear-gradient(135deg, var(--primary-light), var(--accent), var(--accent-indigo));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -117,7 +115,7 @@
     .hero p {
       font-size: clamp(16px, 2vw, 19px);
       color: var(--text-muted);
-      max-width: 680px;
+      max-width: 720px;
       margin: 0 auto 36px;
     }
 
@@ -126,17 +124,17 @@
       justify-content: center;
       gap: 16px;
       flex-wrap: wrap;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
     }
 
     .btn {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      padding: 16px 32px;
+      padding: 16px 28px;
       border-radius: 14px;
       font-weight: 700;
-      font-size: 16px;
+      font-size: 15px;
       text-decoration: none;
       transition: all 0.2s ease;
       cursor: pointer;
@@ -151,6 +149,28 @@
     .btn-primary:hover {
       transform: translateY(-2px);
       box-shadow: 0 14px 30px -5px rgba(6, 182, 212, 0.55);
+    }
+
+    .btn-win {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: #fff;
+      box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-win:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px -5px rgba(59, 130, 246, 0.55);
+    }
+
+    .btn-mac {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-mac:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px -5px rgba(16, 185, 129, 0.55);
     }
 
     .btn-secondary {
@@ -169,12 +189,12 @@
       color: var(--text-muted);
     }
 
-    /* Cards */
+    /* Cards Grid */
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 24px;
-      margin: 60px 0;
+      margin: 50px 0;
     }
 
     .card {
@@ -187,7 +207,7 @@
 
     .card:hover {
       transform: translateY(-4px);
-      border-color: rgba(6, 182, 212, 0.3);
+      border-color: rgba(6, 182, 212, 0.35);
     }
 
     .card-icon {
@@ -231,38 +251,6 @@
       text-align: center;
     }
 
-    .step-item {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 20px;
-      align-items: flex-start;
-    }
-
-    .step-num {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      flex-shrink: 0;
-      font-size: 14px;
-    }
-
-    .step-text h4 {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .step-text p {
-      font-size: 14px;
-      color: var(--text-muted);
-    }
-
     code {
       background: rgba(0, 0, 0, 0.4);
       padding: 3px 8px;
@@ -287,8 +275,8 @@
   <header>
     <div class="container header-content">
       <a href="/" class="logo">
-        <div class="logo-icon">📺</div>
-        <span>DoScreen</span>
+        <img src="/logo.svg" alt="SpanCast Logo">
+        <span>SpanCast</span>
       </a>
       <span class="badge">v0.1.0 Alpha</span>
     </div>
@@ -296,22 +284,22 @@
 
   <main class="container">
     <section class="hero">
-      <span class="badge">🚀 Ekosistem Duvarları Olmadan</span>
-      <h1>Her Cihazdan Her Cihaza<br><span>Gecikmesiz Ekran Paylaşımı</span></h1>
-      <p>Bilgisayarından Google TV'ye, telefonundan monitörüne tek tıkla bağlan. Miracast ve AirPlay sınırlarına takılmadan, yerel ağda P2P düşük gecikmeyle ekranını yansıt.</p>
+      <span class="badge">🚀 Ekosistem Duvarları Olmadan • Sınırsız Ekran</span>
+      <h1>Her Cihazdan Her Cihaza<br><span>Gecikmesiz Ekran Paylaşımı & 2. Ekran</span></h1>
+      <p>Bilgisayarından Google TV'ye, MacBook'undan televizyonuna kablosuz 2. monitör olarak bağlan. Miracast ve AirPlay sınırlarına takılmadan, yerel ağda P2P düşük gecikmeyle ekranını genişlet ve yansıt.</p>
 
       <div class="cta-group">
-        <a href="/DoScreen.apk" class="btn btn-primary" download>
+        <a href="/SpanCast.apk" class="btn btn-primary" download>
           <span>📱</span> Android APK (Google TV & Telefon)
         </a>
-        <a href="/DoScreen-Windows-x64.zip" class="btn btn-primary" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);" download>
+        <a href="/SpanCast-Windows-x64.zip" class="btn btn-win" download>
           <span>💻</span> Windows İndir (.exe)
         </a>
-        <a href="/DoScreen-macOS.zip" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);" download>
+        <a href="/SpanCast-macOS.zip" class="btn btn-mac" download>
           <span>🍏</span> macOS İndir (.app)
         </a>
         <a href="#guide" class="btn btn-secondary">
-          <span>📖</span> Rehber
+          <span>📖</span> Hızlı Rehber
         </a>
       </div>
       <div class="meta-info">Google TV / Android TV / Android Telefon / Windows 10 & 11 / macOS (Apple Silicon & Intel)</div>
@@ -319,53 +307,74 @@
 
     <div class="grid">
       <div class="card">
+        <div class="card-icon">🖥️</div>
+        <h3>Kablosuz 2. Ekran (Desktop Spanning)</h3>
+        <p>Televizyonu veya tableti sadece ana ekranınızı kopyalamak için değil, tamamen bağımsız genişletilmiş bir 2. monitör olarak kullanın. Pencereleri sürükleyip TV'ye taşıyın.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🍏</div>
+        <h3>Dahili AirPlay 2 Ekran Alıcısı</h3>
+        <p>Android TV'niz anında Apple AirPlay 2 alıcısı olur. Mac'inizden hiçbir ek uygulama açmadan Kontrol Merkezi &rarr; "SpanCast TV" &rarr; "Ayrı Ekran Olarak Kullan" ile bağlanın.</p>
+      </div>
+      <div class="card">
         <div class="card-icon">⚡</div>
-        <h3>Ultra Düşük Gecikme</h3>
-        <p>Tarayıcı tamponlarını devreden çıkaran native WebRTC motoru. LAN üzerinde &le; 40 ms tepki süresiyle fare hareketlerini anında hisset.</p>
+        <h3>Ultra Düşük Gecikme (&le;40 ms & 60 FPS)</h3>
+        <p>Tarayıcı tamponlarını devreden çıkaran donanım hızlandırmalı WebRTC motoru. LAN üzerinde sıfıra yakın gecikmeyle fare hareketlerini ve videoları anında hissedin.</p>
       </div>
       <div class="card">
         <div class="card-icon">🔍</div>
-        <h3>Otomatik Cihaz Keşfi</h3>
-        <p>UDP Beacon ile ağdaki Google TV veya alıcı bilgisayarlar otomatik bulunur. Listeden tek tıkla bağlanabilirsiniz.</p>
+        <h3>Otomatik Cihaz Keşfi (mDNS + UDP)</h3>
+        <p>Ağdaki Google TV, bilgisayar veya mobil alıcılar sıfır yapılandırmayla anında bulunur. Manuel IP girmeye gerek kalmadan listeden tek tıkla bağlanın.</p>
       </div>
       <div class="card">
         <div class="card-icon">🔒</div>
-        <h3>Tek Tıkla Güvenli Bağlantı</h3>
-        <p>İlk seferde PIN girdikten sonra cihaz otomatik güvenilir listeye eklenir. Sonraki bağlantılarda PIN girmeden anında yansıtma başlar.</p>
+        <h3>Tek Tıkla Güvenli Eşleşme (PIN Yok)</h3>
+        <p>İlk seferde PIN girdikten sonra cihaz otomatik güvenilir listeye eklenir. Sonraki tüm bağlantılarda PIN girmeden anında tek tıkla yansıtma başlar.</p>
       </div>
       <div class="card">
         <div class="card-icon">🪟</div>
-        <h3>Çoklu Ekran Grid (4 Cihaz)</h3>
-        <p>Aynı anda 4 farklı telefon veya bilgisayar tek televizyona yansıtılabilir (Yan yana veya 2x2 grid düzeni).</p>
+        <h3>Çoklu Ekran Grid (4 Cihaz Aynı Anda)</h3>
+        <p>Aynı anda 4 farklı telefon veya bilgisayar tek televizyona yansıtılabilir (Yan yana veya 2x2 grid düzeni ile canlı sunum ve karşılaştırma).</p>
       </div>
       <div class="card">
         <div class="card-icon">🔊</div>
-        <h3>Düşük Gecikmeli Ses İletimi</h3>
-        <p>Video görüntüsüyle senkronize Opus kodek audio akışı. İsteğe bağlı olarak tek tıkla açılıp kapatılabilir.</p>
+        <h3>Senkronize Medya & Mikrofon Sesi</h3>
+        <p>Görüntüyle milisaniyelik senkronize Opus kodek ses iletimi. İster sistem seslerini, ister mikrofon sesini tek tıkla canlı kontrol edin.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌐</div>
+        <h3>Sıfır Kurulum Web Alıcı & Gönderici</h3>
+        <p>Samsung ve LG TV tarayıcılarından veya misafir bilgisayarlardan uygulama kurmadan doğrudan IP üzerinden yayını başlatın veya izleyin.</p>
       </div>
       <div class="card">
         <div class="card-icon">📺</div>
-        <h3>Google TV & Leanback Hazır</h3>
-        <p>Televizyon kumandası (D-pad) ile tam uyumlu arayüz. TV ana ekranında uygulama ikonu ve arka planda dinleme modu.</p>
+        <h3>Google TV & Leanback D-pad Uyumlu</h3>
+        <p>Televizyon kumandasıyla yüzde yüz uyumlu 10-foot arayüz. TV ana ekranında uygulama ikonu ve arka planda uyumayan alıcı servisi.</p>
       </div>
     </div>
 
     <section id="guide" class="steps-box">
-      <h2>Kurulum ve Kullanım Rehberi</h2>
+      <h2>Kurulum ve 2. Ekran Kullanım Rehberi</h2>
       
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 20px;">
-        <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 14px; border: 1px solid var(--border);">
+        <div style="background: rgba(255,255,255,0.03); padding: 22px; border-radius: 14px; border: 1px solid var(--border);">
           <h3 style="color: var(--primary-light); margin-bottom: 12px;">📺 Google TV / Android TV</h3>
-          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">1. <code>DoScreen.apk</code> dosyasını indirin ve TV'nize ADB veya Send Files to TV ile kurun.</p>
-          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">2. TV'de DoScreen'i açın ve <strong>"Alıcı Modu"</strong>nda bırakın.</p>
-          <p style="font-size: 14px; color: var(--text-muted);">3. TV ekranında görünen 6 haneli PIN ve IP ile bilgisayarınızdan veya telefonunuzdan bağlanın.</p>
+          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">1. <code>SpanCast.apk</code> dosyasını indirin ve TV'nize kurun (Send Files to TV veya ADB ile).</p>
+          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">2. TV'de SpanCast'i açın ve <strong>"Alıcı Modu"</strong>nda bırakın.</p>
+          <p style="font-size: 14px; color: var(--text-muted);">3. TV ekranındaki 6 haneli PIN ve IP ile bilgisayarınızdan veya telefonunuzdan bağlanın.</p>
         </div>
 
-        <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 14px; border: 1px solid var(--border);">
-          <h3 style="color: #60a5fa; margin-bottom: 12px;">💻 Windows PC (Gönderici / Alıcı)</h3>
-          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">1. <code>DoScreen-Windows-x64.zip</code> dosyasını indirip bir klasöre çıkartın.</p>
-          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">2. <code>doscreen.exe</code> dosyasını çalıştırın.</p>
-          <p style="font-size: 14px; color: var(--text-muted);">3. <strong>"Yansıt"</strong> sekmesinde ağdaki TV veya monitörünüz otomatik gözükür, tek tıkla ekranınızı yansıtın.</p>
+        <div style="background: rgba(255,255,255,0.03); padding: 22px; border-radius: 14px; border: 1px solid var(--border);">
+          <h3 style="color: #60a5fa; margin-bottom: 12px;">💻 Windows PC (Gönderici / 2. Ekran)</h3>
+          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">1. <code>SpanCast-Windows-x64.zip</code> dosyasını indirip bir klasöre çıkartın.</p>
+          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;">2. <code>spancast.exe</code> uygulamasını çalıştırın.</p>
+          <p style="font-size: 14px; color: var(--text-muted);">3. <strong>"Gönderici"</strong> sekmesinde TV otomatik gözükür. TV'yi 2. monitör yapmak için Windows ekran ayarlarından "Genişlet"i açıp Ekran 2'yi seçin.</p>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); padding: 22px; border-radius: 14px; border: 1px solid var(--border);">
+          <h3 style="color: #34d399; margin-bottom: 12px;">🍏 Mac (MacBook Air / Pro)</h3>
+          <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 10px;"><strong>Kolay Yol (AirPlay 2):</strong> Mac Kontrol Merkezi &rarr; Ekran Yansıtma &rarr; <strong>"SpanCast TV"</strong>yi seçin ve <strong>"Ayrı Ekran Olarak Kullan"</strong>a tıklayın!</p>
+          <p style="font-size: 14px; color: var(--text-muted);"><strong>SpanCast Uygulaması:</strong> <code>SpanCast-macOS.zip</code> dosyasını açıp ekran paylaşımını başlatabilirsiniz.</p>
         </div>
       </div>
     </section>
@@ -373,7 +382,7 @@
 
   <footer>
     <div class="container">
-      <p>DoScreen &bull; Geliştirici: Yasin Emre Turhan &bull; Debian VPS Caddy Altyapısı</p>
+      <p>SpanCast &bull; Evrensel Ekran Paylaşımı ve Çoklu Monitör Ekosistemi &bull; Geliştirici: Yasin Emre Turhan</p>
     </div>
   </footer>
 

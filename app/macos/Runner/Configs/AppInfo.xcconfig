@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = doscreen
+PRODUCT_NAME = SpanCast
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = app.doscreen.doscreen
+PRODUCT_BUNDLE_IDENTIFIER = app.spancast.spancast
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 app.doscreen. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 SpanCast. All rights reserved.

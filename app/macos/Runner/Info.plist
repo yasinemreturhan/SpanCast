@@ -29,11 +29,11 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>DoScreen ekran yansıtırken ses aktarmak için mikrofona ihtiyaç duyar.</string>
+	<string>SpanCast ekran yansıtırken ses aktarmak için mikrofona ihtiyaç duyar.</string>
 	<key>NSScreenCaptureUsageDescription</key>
-	<string>DoScreen ekranınızı kablosuz olarak diğer cihazlara ve TV'ye aktarmak için ekran kaydı iznine ihtiyaç duyar.</string>
+	<string>SpanCast ekranınızı kablosuz olarak diğer cihazlara ve TV'ye aktarmak için ekran kaydı iznine ihtiyaç duyar.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>DoScreen yerel ağdaki TV ve ekranları otomatik keşfetmek için yerel ağa erişim gerektirir.</string>
+	<string>SpanCast yerel ağdaki TV ve ekranları otomatik keşfetmek için yerel ağa erişim gerektirir.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_ushare._tcp</string>

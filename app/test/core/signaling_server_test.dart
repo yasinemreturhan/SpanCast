@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:doscreen/core/client/signaling_client.dart';
-import 'package:doscreen/core/protocol/models.dart';
-import 'package:doscreen/core/server/signaling_server.dart';
+import 'package:spancast/core/client/signaling_client.dart';
+import 'package:spancast/core/protocol/models.dart';
+import 'package:spancast/core/server/signaling_server.dart';
 
 void main() {
   late SignalingServer server;

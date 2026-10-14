@@ -721,7 +721,7 @@ class _SenderViewState extends State<SenderView> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Mac ekranınızı TV\'ye yansıtabilmek için sisteminizin DoScreen uygulamasına ekran kaydı izni vermesi gerekmektedir. İzin vermezseniz ekran paylaşımı başlatılamaz.',
+            'Mac ekranınızı TV\'ye yansıtabilmek için sisteminizin SpanCast uygulamasına ekran kaydı izni vermesi gerekmektedir. İzin vermezseniz ekran paylaşımı başlatılamaz.',
             style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 12),
@@ -784,7 +784,7 @@ class _SenderViewState extends State<SenderView> {
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Aynı Wi-Fi ağında açık bir DoScreen alıcısı bekleniyor...',
+                    'Aynı Wi-Fi ağında açık bir SpanCast alıcısı bekleniyor...',
                     style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ),
@@ -1014,7 +1014,7 @@ class _SenderViewState extends State<SenderView> {
                 Text(
                   '1. Açık kaynaklı Virtual Display Driver (IddCx VDD) ile sanal bir ekran açın (veya 2. fiziksel monitörünüzü bağlayın).\n'
                   '2. Windows Ayarları -> Sistem -> Ekran -> "Bu ekranları genişlet" (Extend) seçeneğini seçin.\n'
-                  '3. DoScreen üzerindeki "Ekranları Yenile" butonuna basın ve listeden "Ekran 2"yi seçin.\n'
+                  '3. SpanCast üzerindeki "Ekranları Yenile" butonuna basın ve listeden "Ekran 2"yi seçin.\n'
                   '4. TV\'ye yayını başlatın! Artık TV\'niz bağımsız 2. ekranınızdır.',
                   style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
                 ),
@@ -1027,7 +1027,7 @@ class _SenderViewState extends State<SenderView> {
                 Text(
                   '1. Ücretsiz BetterDisplay veya FluffyDisplay uygulamasını açın ve "Create Virtual Screen" deyin (veya Mac\'inize donanımsal bir Dummy HDMI fişi takın).\n'
                   '2. macOS anında yeni bir genişletilmiş masaüstü oluşturacaktır.\n'
-                  '3. DoScreen bu ekranı doğrudan algılayıp yukarıdaki listede "Ekran 2" olarak gösterir.\n'
+                  '3. SpanCast bu ekranı doğrudan algılayıp yukarıdaki listede "Ekran 2" olarak gösterir.\n'
                   '4. Ekran 2\'yi seçip TV\'ye yayını başlatın!',
                   style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
                 ),

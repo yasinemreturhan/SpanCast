@@ -364,7 +364,7 @@ const String _webReceiverHtml = r'''<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DoScreen - Ultra Düşük Gecikmeli Ekran Paylaşımı</title>
+  <title>SpanCast - Ultra Düşük Gecikmeli Ekran Paylaşımı & 2. Ekran</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -502,8 +502,8 @@ const String _webReceiverHtml = r'''<!DOCTYPE html>
 <body>
   <div class="container">
     <div class="header">
-      <div class="badge">DoScreen v0.1.0 • Web Alıcı</div>
-      <h1>DoScreen Alıcı Aktif</h1>
+      <div class="badge">SpanCast v0.1.0 • Web Alıcı</div>
+      <h1>SpanCast Alıcı Aktif</h1>
       <p class="subtitle">Bu cihaz şu anda yerel ağda ekran alıcısı olarak çalışıyor.</p>
     </div>
 
@@ -522,15 +522,15 @@ const String _webReceiverHtml = r'''<!DOCTYPE html>
 
     <!-- Downloads -->
     <div class="card">
-      <h2>📥 DoScreen Uygulamaları</h2>
-      <p style="color: #94a3b8; font-size: 14px;">Tam performans, ses iletimi ve 60 FPS ultra düşük gecikme için DoScreen uygulamasını indirin:</p>
+      <h2>📥 SpanCast Uygulamaları</h2>
+      <p style="color: #94a3b8; font-size: 14px;">Tam performans, ses iletimi ve 60 FPS ultra düşük gecikme için SpanCast uygulamasını indirin:</p>
       <div class="downloads-grid">
-        <a class="dl-btn" href="https://doscreen.yasinemreturhan.com/DoScreen.apk" target="_blank">📱 Android (APK)</a>
-        <a class="dl-btn" href="https://doscreen.yasinemreturhan.com/DoScreen-Windows-x64.zip" target="_blank">🪟 Windows (x64)</a>
-        <a class="dl-btn" href="https://doscreen.yasinemreturhan.com/DoScreen-macOS.zip" target="_blank">🍎 macOS (Apple Silicon/Intel)</a>
+        <a class="dl-btn" href="https://doscreen.duckdns.org/SpanCast.apk" target="_blank">📱 Android (APK)</a>
+        <a class="dl-btn" href="https://doscreen.duckdns.org/SpanCast-Windows-x64.zip" target="_blank">🪟 Windows (x64)</a>
+        <a class="dl-btn" href="https://doscreen.duckdns.org/SpanCast-macOS.zip" target="_blank">🍎 macOS (Apple Silicon/Intel)</a>
       </div>
       <div style="margin-top: 14px; text-align: center;">
-        <a href="https://doscreen.yasinemreturhan.com" target="_blank" style="color: #818cf8; font-size: 13px; text-decoration: none;">Resmi İndirme Sayfası ve Rehber &rarr;</a>
+        <a href="https://doscreen.duckdns.org" target="_blank" style="color: #818cf8; font-size: 13px; text-decoration: none;">Resmi İndirme Sayfası ve Rehber &rarr;</a>
       </div>
     </div>
   </div>

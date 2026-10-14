@@ -122,7 +122,7 @@ object NetworkUtils {
     }
 
     // Constants
-    private const val DEFAULT_DEVICE_NAME = "DoScreen TV"
+    private const val DEFAULT_DEVICE_NAME = "SpanCast TV"
     private const val FALLBACK_MAC_ADDRESS = "aa:bb:cc:dd:ee:ff"
     private const val PREFS_NAME = "doscreen_airplay_prefs"
     private const val PREF_KEY_DEVICE_UUID = "doscreen_device_uuid"

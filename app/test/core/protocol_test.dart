@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:doscreen/core/protocol/models.dart';
-import 'package:doscreen/core/protocol/proof.dart';
-import 'package:doscreen/core/server/room_manager.dart';
+import 'package:spancast/core/protocol/models.dart';
+import 'package:spancast/core/protocol/proof.dart';
+import 'package:spancast/core/server/room_manager.dart';
 
 void main() {
   group('SignalMessage', () {

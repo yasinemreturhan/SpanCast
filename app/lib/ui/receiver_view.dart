@@ -78,7 +78,7 @@ class _ReceiverViewState extends State<ReceiverView> {
 
   bool _airPlayRunning = false;
   String? _airPlaySender;
-  String _airPlayName = 'DoScreen TV';
+  String _airPlayName = 'SpanCast TV';
   StreamSubscription? _airPlaySub;
 
   @override
@@ -96,13 +96,13 @@ class _ReceiverViewState extends State<ReceiverView> {
       _initAirPlay();
     }
 
-    _server = SignalingServer(name: 'DoScreen-TV', requestedPort: 8788);
+    _server = SignalingServer(name: 'SpanCast-TV', requestedPort: 8788);
     await _server!.start();
 
     // Broadcast availability on LAN so sender devices automatically discover this receiver
     final primaryIp = _localIps.isNotEmpty ? _localIps.first : 'localhost';
     _discovery.startBroadcasting(
-      name: 'DoScreen-TV',
+      name: 'SpanCast-TV',
       port: 8788,
       role: 'receiver',
       id: '$primaryIp:8788',
@@ -128,12 +128,12 @@ class _ReceiverViewState extends State<ReceiverView> {
         setState(() {
           _airPlayRunning = status['isRunning'] as bool? ?? false;
           _airPlaySender = status['activeSender'] as String?;
-          _airPlayName = status['deviceName'] as String? ?? 'DoScreen TV';
+          _airPlayName = status['deviceName'] as String? ?? 'SpanCast TV';
         });
       }
     });
 
-    await service.startReceiver(name: 'DoScreen TV');
+    await service.startReceiver(name: 'SpanCast TV');
     await service.fetchStatus();
     if (mounted) {
       setState(() {
@@ -549,7 +549,7 @@ class _ReceiverViewState extends State<ReceiverView> {
                                   SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      "Mac'inizde: Kontrol Merkezi -> Ekran Yansıtma -> 'DoScreen TV' seçin ve 'Ayrı Ekran Olarak Kullan'a tıklayın.",
+                                      "Mac'inizde: Kontrol Merkezi -> Ekran Yansıtma -> 'SpanCast TV' seçin ve 'Ayrı Ekran Olarak Kullan'a tıklayın.",
                                       style: TextStyle(color: Colors.white70, fontSize: 12),
                                     ),
                                   ),

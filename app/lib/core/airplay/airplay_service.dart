@@ -29,7 +29,7 @@ class AirPlayService {
   String? _activeSender;
   String? get activeSender => _activeSender;
 
-  String _deviceName = 'DoScreen TV';
+  String _deviceName = 'SpanCast TV';
   String get deviceName => _deviceName;
 
   Future<void> _handleMethodCall(MethodCall call) async {
@@ -46,7 +46,7 @@ class AirPlayService {
   void _updateFromMap(Map<String, dynamic> map) {
     _isRunning = map['isRunning'] as bool? ?? false;
     _status = map['status'] as String? ?? 'IDLE';
-    _deviceName = map['deviceName'] as String? ?? 'DoScreen TV';
+    _deviceName = map['deviceName'] as String? ?? 'SpanCast TV';
     _activeSender = map['activeSender'] as String?;
     _statusController.add(map);
   }
