@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../core/client/signaling_client.dart';
 import '../core/discovery/device_model.dart';
 import '../core/discovery/discovery_service.dart';
 import '../core/storage/trust_store.dart';
+import '../core/utils/virtual_display_manager.dart';
 import '../core/webrtc/webrtc_manager.dart';
 
 class SenderView extends StatefulWidget {
@@ -37,6 +39,8 @@ class _SenderViewState extends State<SenderView> {
 
   List<DesktopCapturerSource> _availableSources = [];
   String? _selectedSourceId;
+  bool _isVirtualDisplayActive = false;
+  bool _isCreatingVirtualDisplay = false;
 
   @override
   void initState() {
@@ -45,6 +49,61 @@ class _SenderViewState extends State<SenderView> {
     _initDiscovery();
     if (WebRTC.platformIsDesktop) {
       _loadDesktopSources();
+      if (Platform.isMacOS) {
+        _checkVirtualDisplayStatus();
+      }
+    }
+  }
+
+  Future<void> _checkVirtualDisplayStatus() async {
+    final active = await VirtualDisplayManager.isActive();
+    if (mounted) setState(() => _isVirtualDisplayActive = active);
+  }
+
+  Future<void> _toggleVirtualDisplay() async {
+    if (_isCreatingVirtualDisplay) return;
+    setState(() => _isCreatingVirtualDisplay = true);
+
+    if (_isVirtualDisplayActive) {
+      await VirtualDisplayManager.destroyVirtualDisplay();
+      await Future.delayed(const Duration(milliseconds: 600));
+      await _loadDesktopSources();
+      if (mounted) {
+        setState(() {
+          _isVirtualDisplayActive = false;
+          _isCreatingVirtualDisplay = false;
+          _statusMessage = 'Sanal 2. ekran kapatıldı.';
+        });
+      }
+    } else {
+      final success = await VirtualDisplayManager.createVirtualDisplay();
+      if (success) {
+        // Give macOS a moment to register the new screen
+        await Future.delayed(const Duration(milliseconds: 1200));
+        final sources = await desktopCapturer.getSources(types: [SourceType.Screen]);
+        String? newSourceId;
+        if (sources.isNotEmpty) {
+          newSourceId = sources.last.id;
+        }
+        if (mounted) {
+          setState(() {
+            _availableSources = sources;
+            if (newSourceId != null) {
+              _selectedSourceId = newSourceId;
+            }
+            _isVirtualDisplayActive = true;
+            _isCreatingVirtualDisplay = false;
+            _statusMessage = '✨ 2. Ekran başarıyla oluşturuldu ve seçildi! Artık TV\'ye yansıtabilirsiniz.';
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isCreatingVirtualDisplay = false;
+            _statusMessage = 'Sanal 2. ekran oluşturulamadı.';
+          });
+        }
+      }
     }
   }
 
@@ -702,6 +761,77 @@ class _SenderViewState extends State<SenderView> {
             setState(() => _selectedSourceId = val);
           },
         ),
+        if (Platform.isMacOS) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _isVirtualDisplayActive
+                  ? Colors.green.withValues(alpha: 0.15)
+                  : const Color(0xFF161B22),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _isVirtualDisplayActive ? Colors.greenAccent : Colors.cyanAccent.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _isVirtualDisplayActive ? Icons.check_circle : Icons.add_to_queue,
+                  color: _isVirtualDisplayActive ? Colors.greenAccent : Colors.cyanAccent,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isVirtualDisplayActive
+                            ? 'Sanal 2. Ekran Aktif (Genişletilmiş)'
+                            : 'TV veya Tableti 2. Monitör Yap',
+                        style: TextStyle(
+                          color: _isVirtualDisplayActive ? Colors.greenAccent : Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _isVirtualDisplayActive
+                            ? 'Pencereleri sağa sürükleyerek 2. ekrana taşıyabilirsiniz'
+                            : 'DoScreen içinden tek tıkla bağımsız 2. masaüstü açar',
+                        style: const TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _isCreatingVirtualDisplay ? null : _toggleVirtualDisplay,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isVirtualDisplayActive
+                        ? Colors.redAccent.withValues(alpha: 0.8)
+                        : Colors.cyanAccent,
+                    foregroundColor: _isVirtualDisplayActive ? Colors.white : Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _isCreatingVirtualDisplay
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(
+                          _isVirtualDisplayActive ? 'Kapat' : '2. Ekran Oluştur',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         InkWell(
           onTap: _showVirtualDisplayGuide,
@@ -714,7 +844,7 @@ class _SenderViewState extends State<SenderView> {
                 SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    '💡 TV veya Tableti 2. Monitör (Genişletilmiş Ekran) Yapma',
+                    '💡 TV veya Tableti 2. Monitör (Genişletilmiş Ekran) Yapma Rehberi',
                     style: TextStyle(color: Colors.cyanAccent, fontSize: 12, decoration: TextDecoration.underline),
                   ),
                 ),
