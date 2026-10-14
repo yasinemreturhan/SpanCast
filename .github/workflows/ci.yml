@@ -84,3 +84,38 @@ jobs:
         with:
           name: doscreen-windows-zip
           path: app/build/DoScreen-Windows-x64.zip
+
+  flutter-macos:
+    name: Build macOS Desktop Release (.app)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          cd app
+          flutter pub get
+
+      - name: Build macOS Desktop Release
+        run: |
+          cd app
+          flutter config --enable-macos-desktop
+          flutter build macos --release
+
+      - name: Compress macOS bundle
+        run: |
+          cd app/build/macos/Build/Products/Release
+          zip -r ../../../../../DoScreen-macOS.zip *.app
+
+      - name: Upload macOS bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doscreen-macos-zip
+          path: DoScreen-macOS.zip
+

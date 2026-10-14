@@ -28,5 +28,13 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>DoScreen ekran yansıtırken ses aktarmak için mikrofona ihtiyaç duyar.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>DoScreen yerel ağdaki TV ve ekranları otomatik keşfetmek için yerel ağa erişim gerektirir.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_ushare._tcp</string>
+	</array>
 </dict>
 </plist>
