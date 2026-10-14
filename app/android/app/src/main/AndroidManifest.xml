@@ -45,7 +45,7 @@
             android:name=".ScreenCaptureService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection|microphone" />
+            android:foregroundServiceType="mediaProjection" />
         <activity
             android:name=".AirPlayActivity"
             android:exported="false"

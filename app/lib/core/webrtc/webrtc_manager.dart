@@ -39,13 +39,13 @@ class WebRtcManager {
     MediaStream? secondaryAudioStream;
     MediaStream? micStream;
 
-    final shouldCaptureSystemAudio = enableAudio && enableSystemAudio;
+    final shouldCaptureSystemAudio = !Platform.isAndroid && enableAudio && enableSystemAudio;
 
     if (Platform.isAndroid) {
       try {
         const platform = MethodChannel('app.doscreen/media_projection_service');
         await platform.invokeMethod('startService');
-        if (shouldCaptureSystemAudio || enableMicrophone) {
+        if (enableMicrophone) {
           final hasAudio = await platform.invokeMethod<bool>('hasAudioPermission') ?? false;
           if (!hasAudio) {
             await platform.invokeMethod('requestAudioPermission');
@@ -86,8 +86,8 @@ class WebRtcManager {
       stream = await navigator.mediaDevices.getDisplayMedia(fallbackConstraints);
     }
 
-    // Capture device audio via getUserMedia if getDisplayMedia returned no audio tracks (AGC enabled for volume boost!)
-    if (shouldCaptureSystemAudio && stream.getAudioTracks().isEmpty) {
+    // Capture desktop audio via getUserMedia if getDisplayMedia returned no audio tracks (AGC enabled for volume boost!)
+    if (!Platform.isAndroid && shouldCaptureSystemAudio && stream.getAudioTracks().isEmpty) {
       try {
         secondaryAudioStream = await navigator.mediaDevices.getUserMedia({
           'audio': {
@@ -127,26 +127,37 @@ class WebRtcManager {
 
     // Capture microphone independently if enabled
     if (enableMicrophone) {
-      try {
-        micStream = await navigator.mediaDevices.getUserMedia({
-          'audio': {
-            'mandatory': {
-              'googEchoCancellation': 'true',
-              'googNoiseSuppression': 'true',
-              'googAutoGainControl': 'true',
-            },
-            'optional': [],
-          },
-          'video': false,
-        });
-        for (final track in micStream.getAudioTracks()) {
-          track.enabled = true;
-          try {
-            await stream.addTrack(track);
-          } catch (_) {}
+      bool canCaptureMic = true;
+      if (Platform.isAndroid) {
+        try {
+          const platform = MethodChannel('app.doscreen/media_projection_service');
+          canCaptureMic = await platform.invokeMethod<bool>('hasAudioPermission') ?? false;
+        } catch (_) {
+          canCaptureMic = false;
         }
-      } catch (e) {
-        debugPrint('Microphone capture error: $e');
+      }
+      if (canCaptureMic) {
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            'audio': {
+              'mandatory': {
+                'googEchoCancellation': 'true',
+                'googNoiseSuppression': 'true',
+                'googAutoGainControl': 'true',
+              },
+              'optional': [],
+            },
+            'video': false,
+          });
+          for (final track in micStream.getAudioTracks()) {
+            track.enabled = true;
+            try {
+              await stream.addTrack(track);
+            } catch (_) {}
+          }
+        } catch (e) {
+          debugPrint('Microphone capture error: $e');
+        }
       }
     }
 
