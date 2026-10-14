@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../client/signaling_client.dart';
@@ -8,6 +9,7 @@ import '../protocol/models.dart';
 class WebRtcManager {
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
+  MediaStream? _secondaryAudioStream;
   final SignalingClient? signalingClient;
 
   WebRtcManager({this.signalingClient});
@@ -31,6 +33,7 @@ class WebRtcManager {
     bool enableAudio = true,
   }) async {
     MediaStream stream;
+    MediaStream? secondaryAudioStream;
 
     if (Platform.isAndroid) {
       try {
@@ -75,21 +78,38 @@ class WebRtcManager {
     // Capture device audio via getUserMedia if getDisplayMedia returned no audio tracks
     if (enableAudio && stream.getAudioTracks().isEmpty) {
       try {
-        final audioStream = await navigator.mediaDevices.getUserMedia({
-          'audio': true,
+        secondaryAudioStream = await navigator.mediaDevices.getUserMedia({
+          'audio': {
+            'echoCancellation': false,
+            'noiseSuppression': false,
+            'autoGainControl': false,
+          },
           'video': false,
         });
-        for (final track in audioStream.getAudioTracks()) {
-          stream.addTrack(track);
+        for (final track in secondaryAudioStream.getAudioTracks()) {
+          track.enabled = true;
+          try {
+            await stream.addTrack(track);
+          } catch (_) {}
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('Audio capture fallback error: $e');
+      }
     }
 
     _localStream = stream;
+    _secondaryAudioStream = secondaryAudioStream;
 
     _peerConnection = await createPeerConnection(_lowLatencyConfiguration);
 
-    for (final track in stream.getTracks()) {
+    final allTracks = <MediaStreamTrack>[
+      ...stream.getTracks(),
+      if (secondaryAudioStream != null) ...secondaryAudioStream.getAudioTracks(),
+    ];
+    final seenIds = <String>{};
+    final uniqueTracks = allTracks.where((t) => t.id != null && seenIds.add(t.id!)).toList();
+
+    for (final track in uniqueTracks) {
       await _peerConnection!.addTrack(track, stream);
     }
 
@@ -150,14 +170,18 @@ class WebRtcManager {
     };
 
     _peerConnection!.onTrack = (event) {
-      if (event.track.kind == 'audio') {
-        event.track.enabled = true;
-      }
+      event.track.enabled = true;
       if (event.streams.isNotEmpty) {
-        for (final t in event.streams.first.getAudioTracks()) {
+        final stream = event.streams.first;
+        if (event.track.kind == 'audio' && !stream.getAudioTracks().any((t) => t.id == event.track.id)) {
+          try {
+            stream.addTrack(event.track);
+          } catch (_) {}
+        }
+        for (final t in stream.getAudioTracks()) {
           t.enabled = true;
         }
-        onStream(event.streams.first);
+        onStream(stream);
       }
     };
     _peerConnection!.onAddStream = (stream) {
@@ -208,10 +232,13 @@ class WebRtcManager {
     try {
       _localStream?.getTracks().forEach((track) => track.stop());
       await _localStream?.dispose();
+      _secondaryAudioStream?.getTracks().forEach((track) => track.stop());
+      await _secondaryAudioStream?.dispose();
       await _peerConnection?.close();
       await _peerConnection?.dispose();
     } catch (_) {}
     _localStream = null;
+    _secondaryAudioStream = null;
     _peerConnection = null;
   }
 }

@@ -28,7 +28,9 @@ class _ActiveStreamTile {
     if (stream != null) {
       for (final t in stream.getAudioTracks()) {
         t.enabled = !isMuted;
-        Helper.setVolume(isMuted ? 0.0 : 1.0, t);
+        try {
+          await Helper.setVolume(isMuted ? 0.0 : 1.0, t);
+        } catch (_) {}
       }
     }
   }
@@ -157,9 +159,15 @@ class _ReceiverViewState extends State<ReceiverView> {
           renderer.srcObject = stream;
           for (final t in stream.getAudioTracks()) {
             t.enabled = true;
-            Helper.setVolume(1.0, t);
+            try {
+              Helper.setVolume(1.0, t);
+            } catch (_) {}
           }
-          Helper.setSpeakerphoneOn(true);
+          if (Platform.isIOS || Platform.isAndroid) {
+            try {
+              Helper.setSpeakerphoneOn(true);
+            } catch (_) {}
+          }
           if (mounted) setState(() {});
         },
       );
