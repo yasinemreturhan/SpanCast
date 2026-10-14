@@ -35,6 +35,31 @@ class MainFlutterWindow: NSWindow {
       }
     }
 
+    let permissionChannel = FlutterMethodChannel(name: "app.doscreen/macos_permissions", binaryMessenger: flutterViewController.engine.binaryMessenger)
+    permissionChannel.setMethodCallHandler { (call, result) in
+      switch call.method {
+      case "hasScreenCapturePermission":
+        if #available(macOS 10.15, *) {
+          result(CGPreflightScreenCaptureAccess())
+        } else {
+          result(true)
+        }
+      case "requestScreenCapturePermission":
+        if #available(macOS 11.0, *) {
+          result(CGRequestScreenCaptureAccess())
+        } else {
+          result(true)
+        }
+      case "openScreenCaptureSettings":
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+          NSWorkspace.shared.open(url)
+        }
+        result(true)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     super.awakeFromNib()
   }
 }

@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../core/client/signaling_client.dart';
 import '../core/discovery/device_model.dart';
@@ -38,6 +40,7 @@ class _SenderViewState extends State<SenderView> {
   List<DesktopCapturerSource> _availableSources = [];
   String? _selectedSourceId;
   int _targetFps = 30;
+  bool _hasMacScreenPermission = true;
 
   @override
   void initState() {
@@ -46,6 +49,36 @@ class _SenderViewState extends State<SenderView> {
     _initDiscovery();
     if (WebRTC.platformIsDesktop) {
       _loadDesktopSources();
+    }
+    if (Platform.isMacOS) {
+      _checkMacScreenPermission();
+    }
+  }
+
+  Future<void> _checkMacScreenPermission() async {
+    if (Platform.isMacOS) {
+      try {
+        const platform = MethodChannel('app.doscreen/macos_permissions');
+        final hasPerm = await platform.invokeMethod<bool>('hasScreenCapturePermission') ?? true;
+        if (mounted) {
+          setState(() {
+            _hasMacScreenPermission = hasPerm;
+          });
+        }
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _requestMacScreenPermission() async {
+    if (Platform.isMacOS) {
+      try {
+        const platform = MethodChannel('app.doscreen/macos_permissions');
+        await platform.invokeMethod('requestScreenCapturePermission');
+        await platform.invokeMethod('openScreenCaptureSettings');
+        await Future.delayed(const Duration(seconds: 1));
+        await _checkMacScreenPermission();
+        await _loadDesktopSources();
+      } catch (_) {}
     }
   }
 
@@ -104,6 +137,15 @@ class _SenderViewState extends State<SenderView> {
   }
 
   Future<void> _startSharing() async {
+    if (Platform.isMacOS) {
+      await _checkMacScreenPermission();
+      if (!_hasMacScreenPermission) {
+        setState(() => _statusMessage = '⚠️ Lütfen macOS Ekran Kaydı İznini onaylayın.');
+        await _requestMacScreenPermission();
+        return;
+      }
+    }
+
     final host = _hostController.text.trim();
     final pin = _pinController.text.trim();
     final name = _nameController.text.trim().isEmpty ? 'Cihaz' : _nameController.text.trim();
@@ -272,6 +314,11 @@ class _SenderViewState extends State<SenderView> {
                   if (!_isStreaming) ...[
                     _buildDiscoveredDevicesList(),
                     const SizedBox(height: 18),
+                  ],
+
+                  if (Platform.isMacOS && !_hasMacScreenPermission) ...[
+                    _buildMacPermissionWarning(),
+                    const SizedBox(height: 16),
                   ],
 
                   if (_statusMessage != null) ...[
@@ -641,6 +688,59 @@ class _SenderViewState extends State<SenderView> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMacPermissionWarning() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amberAccent),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 22),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'macOS Ekran Kaydı İzni Gerekli',
+                  style: TextStyle(
+                    color: Colors.amberAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Mac ekranınızı TV\'ye yansıtabilmek için sisteminizin DoScreen uygulamasına ekran kaydı izni vermesi gerekmektedir. İzin vermezseniz ekran paylaşımı başlatılamaz.',
+            style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _requestMacScreenPermission,
+              icon: const Icon(Icons.settings, size: 16),
+              label: const Text('Ekran Kaydı İznini Aç (Sistem Ayarları)'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

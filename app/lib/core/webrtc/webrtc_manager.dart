@@ -57,10 +57,10 @@ class WebRtcManager {
     dynamic videoConstraints = true;
     if (WebRTC.platformIsDesktop) {
       try {
-        final sources = await desktopCapturer.getSources(types: [SourceType.Screen, SourceType.Window]);
+        final sources = await desktopCapturer.getSources(types: [SourceType.Screen]);
         final target = (sourceId != null && sources.any((s) => s.id == sourceId))
             ? sources.firstWhere((s) => s.id == sourceId)
-            : (sources.isNotEmpty ? sources.first : null);
+            : null;
         if (target != null) {
           videoConstraints = {
             'deviceId': {'exact': target.id},
@@ -68,8 +68,21 @@ class WebRtcManager {
               'frameRate': fps,
             },
           };
+        } else {
+          // Default display: omit deviceId so macOS/Windows uses the primary screen directly
+          videoConstraints = {
+            'mandatory': {
+              'frameRate': fps,
+            },
+          };
         }
-      } catch (_) {}
+      } catch (_) {
+        videoConstraints = {
+          'mandatory': {
+            'frameRate': fps,
+          },
+        };
+      }
     }
 
     try {
@@ -79,11 +92,22 @@ class WebRtcManager {
       };
       stream = await navigator.mediaDevices.getDisplayMedia(mediaConstraints);
     } catch (_) {
-      final fallbackConstraints = <String, dynamic>{
-        'audio': false,
-        'video': videoConstraints,
-      };
-      stream = await navigator.mediaDevices.getDisplayMedia(fallbackConstraints);
+      try {
+        final fallbackConstraints = <String, dynamic>{
+          'audio': false,
+          'video': {
+            'mandatory': {
+              'frameRate': fps,
+            },
+          },
+        };
+        stream = await navigator.mediaDevices.getDisplayMedia(fallbackConstraints);
+      } catch (_) {
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          'audio': false,
+          'video': true,
+        });
+      }
     }
 
     // Capture desktop audio via getUserMedia if getDisplayMedia returned no audio tracks (AGC enabled for volume boost!)
@@ -178,6 +202,27 @@ class WebRtcManager {
     for (final track in uniqueTracks) {
       await _peerConnection!.addTrack(track, stream);
     }
+
+    // Configure video senders for smooth streaming and zero freeze:
+    // 1. Cap maxBitrate to 6 Mbps to avoid Wi-Fi buffer bloat and packet drops
+    // 2. Set degradationPreference to MAINTAIN_FRAMERATE to prevent freezing during minor packet loss
+    try {
+      final senders = await _peerConnection!.getSenders();
+      for (final s in senders) {
+        if (s.track?.kind == 'video') {
+          final params = s.parameters;
+          if (params.encodings != null && params.encodings!.isNotEmpty) {
+            for (final enc in params.encodings!) {
+              enc.maxFramerate = fps;
+              enc.maxBitrate = 6000000;
+              enc.minBitrate = 1000000;
+            }
+          }
+          params.degradationPreference = RTCDegradationPreference.MAINTAIN_FRAMERATE;
+          await s.setParameters(params);
+        }
+      }
+    } catch (_) {}
 
     _peerConnection!.onIceCandidate = (candidate) {
       signalingClient?.send(SignalMessage(
