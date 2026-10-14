@@ -100,13 +100,16 @@ jobs:
       - name: Install dependencies
         run: |
           cd app
+          flutter config --no-enable-swift-package-manager
+          flutter config --enable-macos-desktop
           flutter pub get
+          cd macos
+          pod install --repo-update
 
       - name: Build macOS Desktop Release
         run: |
           cd app
-          flutter config --enable-macos-desktop
-          flutter build macos --release
+          flutter build macos --release --no-codesign
 
       - name: Compress macOS bundle
         run: |
