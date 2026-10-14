@@ -122,11 +122,14 @@ final class VirtualDisplayManager {
     let initDisplaySel = sel_registerName("initWithDescriptor:")
     guard let displayMethod = class_getInstanceMethod(displayClass, initDisplaySel) else { return false }
     let displayImp = method_getImplementation(displayMethod)
-    typealias DisplayInitFunc = @convention(c) (AnyObject, Selector, AnyObject) -> AnyObject
+    typealias DisplayInitFunc = @convention(c) (AnyObject, Selector, AnyObject) -> AnyObject?
     let displayInit = unsafeBitCast(displayImp, to: DisplayInitFunc.self)
 
     let allocatedDisplay = displayClass.perform(Selector(("alloc"))).takeRetainedValue()
-    let display = displayInit(allocatedDisplay, initDisplaySel, descriptor)
+    guard let display = displayInit(allocatedDisplay, initDisplaySel, descriptor) else {
+      NSLog("DoScreen: CGVirtualDisplay initWithDescriptor returned nil (system denied virtual display creation)")
+      return false
+    }
 
     let applySettingsSel = sel_registerName("applySettings:")
     guard let applyMethod = class_getInstanceMethod(displayClass, applySettingsSel) else { return false }

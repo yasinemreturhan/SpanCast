@@ -100,8 +100,8 @@ class _SenderViewState extends State<SenderView> {
         if (mounted) {
           setState(() {
             _isCreatingVirtualDisplay = false;
-            _statusMessage = 'Sanal 2. ekran oluşturulamadı.';
           });
+          _showVirtualDisplayDeniedDialog();
         }
       }
     }
@@ -911,6 +911,57 @@ class _SenderViewState extends State<SenderView> {
                 ),
               ],
             ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Anladım', style: TextStyle(color: Colors.cyanAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showVirtualDisplayDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF30363D)),
+        ),
+        title: Row(
+          children: const [
+            Icon(Icons.security, color: Colors.orangeAccent),
+            SizedBox(width: 10),
+            Text('🍎 macOS Sistem Koruması', style: TextStyle(color: Colors.white, fontSize: 16)),
+          ],
+        ),
+        content: SizedBox(
+          width: 440,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                'macOS çekirdeği (Apple SIP ve CoreDisplay), üçüncü taraf uygulamaların harici bir sürücü olmadan doğrudan sanal monitör üretmesini engellemektedir (kr=0x5).',
+                style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '💡 Nasıl 2. Ekran Yapabilirsiniz?',
+                style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              SizedBox(height: 6),
+              Text(
+                '1. Ücretsiz BetterDisplay veya FluffyDisplay uygulamasını açıp "Create Virtual Screen" deyin (veya donanımsal Dummy HDMI fişi takın).\n'
+                '2. macOS otomatik olarak yeni bir genişletilmiş masaüstü açacaktır.\n'
+                '3. DoScreen bu ekranı doğrudan algılayıp listede "Ekran 2" olarak sunar. Ekran 2\'yi seçip TV\'ye aktarabilirsiniz!',
+                style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
+              ),
+            ],
           ),
         ),
         actions: [
