@@ -114,7 +114,7 @@ jobs:
       - name: Compress macOS bundle
         run: |
           cd app/build/macos/Build/Products/Release
-          zip -r ../../../../../DoScreen-macOS.zip *.app
+          zip -r "$GITHUB_WORKSPACE/DoScreen-macOS.zip" *.app
 
       - name: Upload macOS bundle artifact
         uses: actions/upload-artifact@v4
