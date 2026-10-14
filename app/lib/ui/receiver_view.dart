@@ -13,6 +13,7 @@ class _ActiveStreamTile {
   final String name;
   final RTCVideoRenderer renderer;
   final WebRtcManager webrtc;
+  bool isMuted = false;
 
   _ActiveStreamTile({
     required this.senderId,
@@ -20,6 +21,17 @@ class _ActiveStreamTile {
     required this.renderer,
     required this.webrtc,
   });
+
+  Future<void> toggleMute() async {
+    isMuted = !isMuted;
+    final stream = renderer.srcObject;
+    if (stream != null) {
+      for (final t in stream.getAudioTracks()) {
+        t.enabled = !isMuted;
+        Helper.setVolume(isMuted ? 0.0 : 1.0, t);
+      }
+    }
+  }
 
   Future<void> dispose() async {
     await webrtc.dispose();
@@ -143,6 +155,11 @@ class _ReceiverViewState extends State<ReceiverView> {
         },
         (stream) {
           renderer.srcObject = stream;
+          for (final t in stream.getAudioTracks()) {
+            t.enabled = true;
+            Helper.setVolume(1.0, t);
+          }
+          Helper.setSpeakerphoneOn(true);
           if (mounted) setState(() {});
         },
       );
@@ -399,27 +416,17 @@ class _ReceiverViewState extends State<ReceiverView> {
     // If a single tile is focused, show it full-screen
     if (_focusedSenderId != null && _tiles.containsKey(_focusedSenderId)) {
       final tile = _tiles[_focusedSenderId]!;
-      return Center(
-        child: RTCVideoView(
-          tile.renderer,
-          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
-        ),
-      );
+      return _buildTileWrapper(tile, isFullscreen: true);
     }
 
     if (tileList.length == 1) {
-      return Center(
-        child: RTCVideoView(
-          tileList.first.renderer,
-          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
-        ),
-      );
+      return _buildTileWrapper(tileList.first, isFullscreen: false);
     }
 
     // 2 senders: split horizontally
     if (tileList.length == 2) {
       return Row(
-        children: tileList.map((t) => Expanded(child: _buildTileWrapper(t))).toList(),
+        children: tileList.map((t) => Expanded(child: _buildTileWrapper(t, isFullscreen: false))).toList(),
       );
     }
 
@@ -429,17 +436,17 @@ class _ReceiverViewState extends State<ReceiverView> {
         Expanded(
           child: Row(
             children: [
-              Expanded(child: _buildTileWrapper(tileList[0])),
-              Expanded(child: _buildTileWrapper(tileList[1])),
+              Expanded(child: _buildTileWrapper(tileList[0], isFullscreen: false)),
+              Expanded(child: _buildTileWrapper(tileList[1], isFullscreen: false)),
             ],
           ),
         ),
         Expanded(
           child: Row(
             children: [
-              Expanded(child: _buildTileWrapper(tileList[2])),
+              Expanded(child: _buildTileWrapper(tileList[2], isFullscreen: false)),
               if (tileList.length > 3)
-                Expanded(child: _buildTileWrapper(tileList[3]))
+                Expanded(child: _buildTileWrapper(tileList[3], isFullscreen: false))
               else
                 const Spacer(),
             ],
@@ -449,44 +456,131 @@ class _ReceiverViewState extends State<ReceiverView> {
     );
   }
 
-  Widget _buildTileWrapper(_ActiveStreamTile tile) {
+  Widget _buildTileWrapper(_ActiveStreamTile tile, {required bool isFullscreen}) {
+    final hasAudio = tile.renderer.srcObject?.getAudioTracks().isNotEmpty ?? false;
+
     return Container(
-      margin: const EdgeInsets.all(4),
+      margin: isFullscreen ? EdgeInsets.zero : const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: const Color(0xFF111827),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white24),
+        borderRadius: isFullscreen ? BorderRadius.zero : BorderRadius.circular(12),
+        border: isFullscreen ? null : Border.all(color: Colors.white24),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          RTCVideoView(
-            tile.renderer,
-            objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
-          ),
-          Positioned(
-            top: 8,
-            left: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                tile.name,
-                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-              ),
+          Center(
+            child: RTCVideoView(
+              tile.renderer,
+              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
             ),
           ),
           Positioned(
-            top: 8,
-            right: 8,
-            child: IconButton(
-              icon: const Icon(Icons.fullscreen, color: Colors.white70, size: 20),
-              onPressed: () {
-                setState(() => _focusedSenderId = tile.senderId);
-              },
+            top: 12,
+            left: 12,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.cast_connected, color: Colors.cyanAccent, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        tile.name,
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: (hasAudio && !tile.isMuted)
+                        ? Colors.green.withValues(alpha: 0.3)
+                        : Colors.orange.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: (hasAudio && !tile.isMuted) ? Colors.greenAccent : Colors.orangeAccent,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        (hasAudio && !tile.isMuted) ? Icons.volume_up : Icons.volume_off,
+                        color: (hasAudio && !tile.isMuted) ? Colors.greenAccent : Colors.orangeAccent,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        !hasAudio
+                            ? 'Ses Yok'
+                            : (tile.isMuted ? 'Sessiz' : 'Ses Açık'),
+                        style: TextStyle(
+                          color: (hasAudio && !tile.isMuted) ? Colors.greenAccent : Colors.orangeAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasAudio)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        tile.isMuted ? Icons.volume_off : Icons.volume_up,
+                        color: tile.isMuted ? Colors.redAccent : Colors.cyanAccent,
+                        size: 20,
+                      ),
+                      tooltip: tile.isMuted ? 'Sesi Aç' : 'Sesi Kapat',
+                      onPressed: () async {
+                        await tile.toggleMute();
+                        if (mounted) setState(() {});
+                      },
+                    ),
+                  ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    tooltip: isFullscreen ? 'Tam Ekrandan Çık' : 'Tam Ekran',
+                    onPressed: () {
+                      setState(() => _focusedSenderId = isFullscreen ? null : tile.senderId);
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],

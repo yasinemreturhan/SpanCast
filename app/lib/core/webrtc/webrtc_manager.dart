@@ -71,6 +71,20 @@ class WebRtcManager {
       };
       stream = await navigator.mediaDevices.getDisplayMedia(fallbackConstraints);
     }
+
+    // Capture device audio via getUserMedia if getDisplayMedia returned no audio tracks
+    if (enableAudio && stream.getAudioTracks().isEmpty) {
+      try {
+        final audioStream = await navigator.mediaDevices.getUserMedia({
+          'audio': true,
+          'video': false,
+        });
+        for (final track in audioStream.getAudioTracks()) {
+          stream.addTrack(track);
+        }
+      } catch (_) {}
+    }
+
     _localStream = stream;
 
     _peerConnection = await createPeerConnection(_lowLatencyConfiguration);
@@ -109,7 +123,10 @@ class WebRtcManager {
       }
     } catch (_) {}
 
-    final offer = await _peerConnection!.createOffer();
+    final offer = await _peerConnection!.createOffer({
+      'offerToReceiveAudio': 0,
+      'offerToReceiveVideo': 0,
+    });
     await _peerConnection!.setLocalDescription(offer);
 
     signalingClient?.send(SignalMessage(
@@ -133,11 +150,20 @@ class WebRtcManager {
     };
 
     _peerConnection!.onTrack = (event) {
+      if (event.track.kind == 'audio') {
+        event.track.enabled = true;
+      }
       if (event.streams.isNotEmpty) {
+        for (final t in event.streams.first.getAudioTracks()) {
+          t.enabled = true;
+        }
         onStream(event.streams.first);
       }
     };
     _peerConnection!.onAddStream = (stream) {
+      for (final t in stream.getAudioTracks()) {
+        t.enabled = true;
+      }
       onStream(stream);
     };
 
@@ -145,7 +171,10 @@ class WebRtcManager {
       RTCSessionDescription(sdpMap['sdp'], sdpMap['type']),
     );
 
-    final answer = await _peerConnection!.createAnswer();
+    final answer = await _peerConnection!.createAnswer({
+      'offerToReceiveAudio': 1,
+      'offerToReceiveVideo': 1,
+    });
     await _peerConnection!.setLocalDescription(answer);
     return answer;
   }
