@@ -61,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.cyanAccent.withOpacity(0.2),
+                color: Colors.cyanAccent.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.cast_connected, color: Colors.cyanAccent, size: 20),

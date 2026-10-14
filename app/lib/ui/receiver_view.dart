@@ -2,9 +2,31 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import '../core/discovery/discovery_service.dart';
 import '../core/protocol/models.dart';
 import '../core/server/signaling_server.dart';
+import '../core/storage/trust_store.dart';
 import '../core/webrtc/webrtc_manager.dart';
+
+class _ActiveStreamTile {
+  final String senderId;
+  final String name;
+  final RTCVideoRenderer renderer;
+  final WebRtcManager webrtc;
+
+  _ActiveStreamTile({
+    required this.senderId,
+    required this.name,
+    required this.renderer,
+    required this.webrtc,
+  });
+
+  Future<void> dispose() async {
+    await webrtc.dispose();
+    renderer.srcObject = null;
+    await renderer.dispose();
+  }
+}
 
 class ReceiverView extends StatefulWidget {
   const ReceiverView({super.key});
@@ -18,24 +40,34 @@ class _ReceiverViewState extends State<ReceiverView> {
   WebSocket? _receiverSocket;
   String _pin = '------';
   List<String> _localIps = [];
-  bool _isStreaming = false;
-  String? _connectedSenderName;
+  final Map<String, _ActiveStreamTile> _tiles = {};
+  String? _focusedSenderId;
 
-  final RTCVideoRenderer _renderer = RTCVideoRenderer();
-  final WebRtcManager _webrtc = WebRtcManager();
+  late final DiscoveryService _discovery;
+  TrustStore? _trustStore;
 
   @override
   void initState() {
     super.initState();
+    _discovery = DiscoveryService();
     _initReceiver();
   }
 
   Future<void> _initReceiver() async {
-    await _renderer.initialize();
+    _trustStore = await TrustStore.create();
     await _fetchLocalIps();
 
     _server = SignalingServer(name: 'DoScreen-TV', requestedPort: 8788);
     await _server!.start();
+
+    // Broadcast availability on LAN so sender devices automatically discover this receiver
+    final primaryIp = _localIps.isNotEmpty ? _localIps.first : 'localhost';
+    _discovery.startBroadcasting(
+      name: 'DoScreen-TV',
+      port: 8788,
+      role: 'receiver',
+      id: '$primaryIp:8788',
+    );
 
     // Connect local controller socket as receiver role
     try {
@@ -43,7 +75,7 @@ class _ReceiverViewState extends State<ReceiverView> {
       _receiverSocket = ws;
 
       ws.listen(_handleReceiverMessage, onDone: () {
-        if (mounted) setState(() => _isStreaming = false);
+        if (mounted) setState(() => _tiles.clear());
       });
     } catch (e) {
       debugPrint('Receiver WS error: $e');
@@ -51,17 +83,19 @@ class _ReceiverViewState extends State<ReceiverView> {
   }
 
   Future<void> _fetchLocalIps() async {
-    final interfaces = await NetworkInterface.list(
-      type: InternetAddressType.IPv4,
-      includeLoopback: false,
-    );
-    final ips = <String>[];
-    for (final iface in interfaces) {
-      for (final addr in iface.addresses) {
-        ips.add(addr.address);
+    try {
+      final interfaces = await NetworkInterface.list(
+        type: InternetAddressType.IPv4,
+        includeLoopback: false,
+      );
+      final ips = <String>[];
+      for (final iface in interfaces) {
+        for (final addr in iface.addresses) {
+          ips.add(addr.address);
+        }
       }
-    }
-    if (mounted) setState(() => _localIps = ips);
+      if (mounted) setState(() => _localIps = ips);
+    } catch (_) {}
   }
 
   Future<void> _handleReceiverMessage(dynamic data) async {
@@ -72,14 +106,29 @@ class _ReceiverViewState extends State<ReceiverView> {
     if (msg.type == 'pin') {
       if (mounted) setState(() => _pin = msg.pin ?? '------');
     } else if (msg.type == 'joined') {
-      if (mounted) {
-        setState(() => _connectedSenderName = msg.name ?? 'Cihaz');
+      final senderId = msg.from;
+      final senderName = msg.name ?? 'Cihaz';
+      if (senderId != null) {
+        _trustStore?.addTrustedDevice(senderId, senderName);
       }
     } else if (msg.type == 'offer') {
       final senderId = msg.from;
+      if (senderId == null) return;
       final payload = msg.payload as Map<String, dynamic>;
 
-      final answer = await _webrtc.handleOffer(
+      // Create new tile for this sender
+      final renderer = RTCVideoRenderer();
+      await renderer.initialize();
+      final webrtc = WebRtcManager();
+
+      final tile = _ActiveStreamTile(
+        senderId: senderId,
+        name: 'Kaynak ($senderId)',
+        renderer: renderer,
+        webrtc: webrtc,
+      );
+
+      final answer = await webrtc.handleOffer(
         payload,
         (candidate) {
           _receiverSocket?.add(SignalMessage(
@@ -93,10 +142,16 @@ class _ReceiverViewState extends State<ReceiverView> {
           ).encode());
         },
         (stream) {
-          _renderer.srcObject = stream;
-          if (mounted) setState(() => _isStreaming = true);
+          renderer.srcObject = stream;
+          if (mounted) setState(() {});
         },
       );
+
+      if (mounted) {
+        setState(() {
+          _tiles[senderId] = tile;
+        });
+      }
 
       _receiverSocket?.add(SignalMessage(
         type: 'answer',
@@ -104,14 +159,18 @@ class _ReceiverViewState extends State<ReceiverView> {
         payload: {'sdp': answer.sdp, 'type': answer.type},
       ).encode());
     } else if (msg.type == 'ice') {
-      final payload = msg.payload as Map<String, dynamic>;
-      await _webrtc.addCandidate(payload);
+      final senderId = msg.from;
+      if (senderId != null && _tiles.containsKey(senderId)) {
+        final payload = msg.payload as Map<String, dynamic>;
+        await _tiles[senderId]?.webrtc.addCandidate(payload);
+      }
     } else if (msg.type == 'left') {
-      if (mounted) {
-        setState(() {
-          _isStreaming = false;
-          _connectedSenderName = null;
-        });
+      final senderId = msg.from;
+      if (senderId != null && _tiles.containsKey(senderId)) {
+        final tile = _tiles.remove(senderId);
+        await tile?.dispose();
+        if (_focusedSenderId == senderId) _focusedSenderId = null;
+        if (mounted) setState(() {});
       }
     }
   }
@@ -120,35 +179,80 @@ class _ReceiverViewState extends State<ReceiverView> {
     _receiverSocket?.add(const SignalMessage(type: 'regen').encode());
   }
 
+  void _showTrustedDevicesDialog() {
+    final trusted = _trustStore?.getTrustedDevices() ?? [];
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text('🔒 Güvenilen Cihazlar', style: TextStyle(color: Colors.white)),
+        content: SizedBox(
+          width: 400,
+          child: trusted.isEmpty
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Text('Henüz kayıtlı güvenilen cihaz yok.', style: TextStyle(color: Colors.grey)),
+              )
+            : ListView.separated(
+                shrinkWrap: true,
+                itemCount: trusted.length,
+                separatorBuilder: (context, index) => const Divider(color: Colors.white12),
+                itemBuilder: (_, i) {
+                  final item = trusted[i];
+                  return ListTile(
+                    leading: const Icon(Icons.verified_user, color: Colors.cyanAccent),
+                    title: Text(item['name'] ?? 'Cihaz', style: const TextStyle(color: Colors.white)),
+                    subtitle: Text('Token: ${item['token']?.substring(0, 10)}...', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                      onPressed: () async {
+                        await _trustStore?.revokeTrustedDevice(item['token'] ?? '');
+                        if (!context.mounted) return;
+                        Navigator.pop(ctx);
+                        _showTrustedDevicesDialog();
+                      },
+                    ),
+                  );
+                },
+              ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Kapat', style: TextStyle(color: Colors.cyanAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _discovery.dispose();
     _receiverSocket?.close();
     _server?.stop();
-    _webrtc.dispose();
-    _renderer.dispose();
+    for (final tile in _tiles.values) {
+      tile.dispose();
+    }
+    _tiles.clear();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isStreaming) {
+    if (_tiles.isNotEmpty) {
       return Scaffold(
         backgroundColor: Colors.black,
         body: Stack(
           children: [
-            Center(
-              child: RTCVideoView(
-                _renderer,
-                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
-              ),
-            ),
+            _buildStreamGrid(),
             Positioned(
               top: 24,
               left: 24,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
+                  color: Colors.black.withValues(alpha: 0.75),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.greenAccent),
                 ),
@@ -157,23 +261,28 @@ class _ReceiverViewState extends State<ReceiverView> {
                     const Icon(Icons.circle, color: Colors.greenAccent, size: 10),
                     const SizedBox(width: 8),
                     Text(
-                      'Yayında: ${_connectedSenderName ?? 'Cihaz'}',
+                      '${_tiles.length} Kaynak Yayında',
                       style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               ),
             ),
-            Positioned(
-              top: 24,
-              right: 24,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white70),
-                onPressed: () {
-                  setState(() => _isStreaming = false);
-                },
+            if (_focusedSenderId != null)
+              Positioned(
+                top: 24,
+                right: 24,
+                child: ElevatedButton.icon(
+                  onPressed: () => setState(() => _focusedSenderId = null),
+                  icon: const Icon(Icons.grid_view, size: 16),
+                  label: const Text('Bölünmüş Ekrana Dön'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white30),
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       );
@@ -203,7 +312,7 @@ class _ReceiverViewState extends State<ReceiverView> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Gönderen cihazda aşağıdaki adresi ve PIN kodunu girin:',
+                  'Gönderen cihazlar ağda bu ekranı otomatik görebilir veya adresi girebilir:',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey[400], fontSize: 14),
                 ),
@@ -213,7 +322,7 @@ class _ReceiverViewState extends State<ReceiverView> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF0D1117),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+                    border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -251,20 +360,136 @@ class _ReceiverViewState extends State<ReceiverView> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: _regeneratePin,
-                  icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('Yeni Kod Üret'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white70,
-                    side: const BorderSide(color: Colors.white24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _regeneratePin,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Yeni Kod Üret'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.white24),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: _showTrustedDevicesDialog,
+                      icon: const Icon(Icons.security, size: 18, color: Colors.cyanAccent),
+                      label: const Text('Güvenilen Cihazlar', style: TextStyle(color: Colors.cyanAccent)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.cyanAccent.withValues(alpha: 0.4)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStreamGrid() {
+    final tileList = _tiles.values.toList();
+
+    // If a single tile is focused, show it full-screen
+    if (_focusedSenderId != null && _tiles.containsKey(_focusedSenderId)) {
+      final tile = _tiles[_focusedSenderId]!;
+      return Center(
+        child: RTCVideoView(
+          tile.renderer,
+          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+        ),
+      );
+    }
+
+    if (tileList.length == 1) {
+      return Center(
+        child: RTCVideoView(
+          tileList.first.renderer,
+          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+        ),
+      );
+    }
+
+    // 2 senders: split horizontally
+    if (tileList.length == 2) {
+      return Row(
+        children: tileList.map((t) => Expanded(child: _buildTileWrapper(t))).toList(),
+      );
+    }
+
+    // 3 or 4 senders: 2x2 grid
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: _buildTileWrapper(tileList[0])),
+              Expanded(child: _buildTileWrapper(tileList[1])),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: _buildTileWrapper(tileList[2])),
+              if (tileList.length > 3)
+                Expanded(child: _buildTileWrapper(tileList[3]))
+              else
+                const Spacer(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTileWrapper(_ActiveStreamTile tile) {
+    return Container(
+      margin: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111827),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white24),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          RTCVideoView(
+            tile.renderer,
+            objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+          ),
+          Positioned(
+            top: 8,
+            left: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                tile.name,
+                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              icon: const Icon(Icons.fullscreen, color: Colors.white70, size: 20),
+              onPressed: () {
+                setState(() => _focusedSenderId = tile.senderId);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

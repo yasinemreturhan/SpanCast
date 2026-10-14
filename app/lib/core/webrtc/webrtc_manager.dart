@@ -20,26 +20,44 @@ class WebRtcManager {
     'sdpSemantics': 'unified-plan',
   };
 
-  /// Initializes a sender PeerConnection and captures the screen.
+  /// Initializes a sender PeerConnection and captures the screen (with optional audio).
   Future<MediaStream> startScreenCapture({
     int width = 1920,
     int height = 1080,
     int fps = 60,
+    bool enableAudio = true,
   }) async {
-    final mediaConstraints = <String, dynamic>{
-      'audio': false,
-      'video': {
-        'mandatory': {
-          'minWidth': '$width',
-          'minHeight': '$height',
-          'minFrameRate': '$fps',
-        },
-        'facingMode': 'user',
-        'optional': [],
-      }
-    };
-
-    final stream = await navigator.mediaDevices.getDisplayMedia(mediaConstraints);
+    MediaStream stream;
+    try {
+      final mediaConstraints = <String, dynamic>{
+        'audio': enableAudio,
+        'video': {
+          'mandatory': {
+            'minWidth': '$width',
+            'minHeight': '$height',
+            'minFrameRate': '$fps',
+          },
+          'facingMode': 'user',
+          'optional': [],
+        }
+      };
+      stream = await navigator.mediaDevices.getDisplayMedia(mediaConstraints);
+    } catch (_) {
+      // If audio capture is denied or unsupported on this OS, fall back gracefully
+      final fallbackConstraints = <String, dynamic>{
+        'audio': false,
+        'video': {
+          'mandatory': {
+            'minWidth': '$width',
+            'minHeight': '$height',
+            'minFrameRate': '$fps',
+          },
+          'facingMode': 'user',
+          'optional': [],
+        }
+      };
+      stream = await navigator.mediaDevices.getDisplayMedia(fallbackConstraints);
+    }
     _localStream = stream;
 
     _peerConnection = await createPeerConnection(_lowLatencyConfiguration);

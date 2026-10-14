@@ -7,8 +7,8 @@ on:
     branches: [ main, v2-flutter ]
 
 jobs:
-  flutter-test:
-    name: Flutter Analyze & Test
+  flutter-android:
+    name: Flutter Analyze, Test & Android APK
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,5 +48,39 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: doscreen-debug-apk
+          name: doscreen-android-apk
           path: app/build/app/outputs/flutter-apk/app-debug.apk
+
+  flutter-windows:
+    name: Build Windows Release (.exe)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          cd app
+          flutter pub get
+
+      - name: Build Windows Desktop Release
+        run: |
+          cd app
+          flutter config --enable-windows-desktop
+          flutter build windows --release
+
+      - name: Compress Windows bundle
+        run: |
+          cd app
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath build\DoScreen-Windows-x64.zip
+
+      - name: Upload Windows bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doscreen-windows-zip
+          path: app/build/DoScreen-Windows-x64.zip

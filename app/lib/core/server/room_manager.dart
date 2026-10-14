@@ -31,7 +31,7 @@ class Sender {
 
 class Room {
   final String id;
-  String _pin;
+  String pin;
   DateTime _created;
   bool _everHadSenders = false;
   int _nextSeq = 0;
@@ -40,11 +40,9 @@ class Room {
   static const Duration pinTtl = Duration(minutes: 2);
   static const int maxSenders = 4;
 
-  Room({required this.id, required String pin, DateTime? created})
-      : _pin = pin,
-        _created = created ?? DateTime.now();
+  Room({required this.id, required this.pin, DateTime? created})
+      : _created = created ?? DateTime.now();
 
-  String get pin => _pin;
   DateTime get created => _created;
   List<Sender> get senders => List.unmodifiable(_senders.values);
   int get senderCount => _senders.length;
@@ -55,7 +53,7 @@ class Room {
   }
 
   void updatePin(String newPin, [DateTime? now]) {
-    _pin = newPin;
+    pin = newPin;
     _created = now ?? DateTime.now();
   }
 

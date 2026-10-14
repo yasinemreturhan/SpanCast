@@ -21,3 +21,7 @@ app/.packages
 .DS_Store
 .idea/
 *.iml
+
+# Binaries & Archives
+*.apk
+*.zip
