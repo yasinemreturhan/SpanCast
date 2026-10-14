@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../core/client/signaling_client.dart';
 import '../core/discovery/device_model.dart';
 import '../core/discovery/discovery_service.dart';
@@ -31,11 +32,31 @@ class _SenderViewState extends State<SenderView> {
   List<DiscoveredDevice> _discoveredDevices = [];
   String? _selectedDeviceToken;
 
+  List<DesktopCapturerSource> _availableSources = [];
+  String? _selectedSourceId;
+
   @override
   void initState() {
     super.initState();
     _startStopwatch();
     _initDiscovery();
+    if (WebRTC.platformIsDesktop) {
+      _loadDesktopSources();
+    }
+  }
+
+  Future<void> _loadDesktopSources() async {
+    try {
+      final sources = await desktopCapturer.getSources(types: [SourceType.Screen]);
+      if (mounted) {
+        setState(() {
+          _availableSources = sources;
+          if (sources.isNotEmpty && _selectedSourceId == null) {
+            _selectedSourceId = sources.first.id;
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _initDiscovery() async {
@@ -140,7 +161,10 @@ class _SenderViewState extends State<SenderView> {
 
       setState(() => _statusMessage = 'Eşleşti! Ekran yakalanıyor...');
       try {
-        await webrtc.startScreenCapture(enableAudio: _shareAudio);
+        await webrtc.startScreenCapture(
+          sourceId: _selectedSourceId,
+          enableAudio: _shareAudio,
+        );
         if (mounted) {
           setState(() {
             _isStreaming = true;
@@ -323,7 +347,8 @@ class _SenderViewState extends State<SenderView> {
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
+                    _buildSourceSelector(),
                     CheckboxListTile(
                       value: _shareAudio,
                       onChanged: (v) => setState(() => _shareAudio = v ?? true),
@@ -515,6 +540,151 @@ class _SenderViewState extends State<SenderView> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildSourceSelector() {
+    if (!WebRTC.platformIsDesktop || _availableSources.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Paylaşılacak Ekran / Monitör',
+              style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 18, color: Colors.grey),
+              tooltip: 'Ekranları Yenile',
+              onPressed: _loadDesktopSources,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: _selectedSourceId,
+          dropdownColor: const Color(0xFF161B22),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.monitor, color: Colors.blueAccent),
+            filled: true,
+            fillColor: const Color(0xFF0D1117),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+          items: _availableSources.map((src) {
+            final isScreen = src.type == SourceType.Screen;
+            return DropdownMenuItem<String>(
+              value: src.id,
+              child: Row(
+                children: [
+                  Icon(isScreen ? Icons.desktop_windows : Icons.web_asset, size: 18, color: Colors.cyanAccent),
+                  const SizedBox(width: 8),
+                  Text(
+                    src.name.isNotEmpty ? src.name : 'Ekran ${src.id}',
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (val) {
+            setState(() => _selectedSourceId = val);
+          },
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _showVirtualDisplayGuide,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+            child: Row(
+              children: const [
+                Icon(Icons.help_outline, size: 16, color: Colors.cyanAccent),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '💡 TV veya Tableti 2. Monitör (Genişletilmiş Ekran) Yapma',
+                    style: TextStyle(color: Colors.cyanAccent, fontSize: 12, decoration: TextDecoration.underline),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+      ],
+    );
+  }
+
+  void _showVirtualDisplayGuide() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF30363D)),
+        ),
+        title: Row(
+          children: const [
+            Icon(Icons.desktop_windows, color: Colors.cyanAccent),
+            SizedBox(width: 10),
+            Text('🖥️ 2. Monitör Yapma Rehberi', style: TextStyle(color: Colors.white, fontSize: 17)),
+          ],
+        ),
+        content: SizedBox(
+          width: 480,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text(
+                  'Televizyonu veya tableti ana ekranınızı aynalamak yerine tamamen bağımsız bir 2. monitör olarak kullanabilirsiniz:',
+                  style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                ),
+                SizedBox(height: 14),
+                Text(
+                  '🪟 Windows 10 / 11:',
+                  style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '1. Açık kaynaklı Virtual Display Driver (IddCx VDD) ile sanal bir ekran açın (veya 2. fiziksel monitörünüzü bağlayın).\n'
+                  '2. Windows Ayarları -> Sistem -> Ekran -> "Bu ekranları genişlet" (Extend) seçeneğini seçin.\n'
+                  '3. DoScreen üzerindeki "Ekranları Yenile" butonuna basın ve listeden "Ekran 2"yi seçin.\n'
+                  '4. TV\'ye yayını başlatın! Artık TV\'niz bağımsız 2. ekranınızdır.',
+                  style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
+                ),
+                SizedBox(height: 14),
+                Text(
+                  '🍎 macOS (Mac):',
+                  style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '1. Sistem Ayarları -> Ekranlar üzerinden yeni sanal ekran oluşturun (veya BetterDisplay kullanın).\n'
+                  '2. Ekran modunu "Genişletilmiş Ekran" (Extend Display) olarak ayarlayın.\n'
+                  '3. DoScreen\'de 2. ekranı seçip yayını başlatın.',
+                  style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Anladım', style: TextStyle(color: Colors.cyanAccent)),
+          ),
+        ],
+      ),
     );
   }
 }

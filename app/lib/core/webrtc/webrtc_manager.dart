@@ -24,6 +24,7 @@ class WebRtcManager {
 
   /// Initializes a sender PeerConnection and captures the screen (with optional audio).
   Future<MediaStream> startScreenCapture({
+    String? sourceId,
     int width = 1920,
     int height = 1080,
     int fps = 60,
@@ -41,10 +42,13 @@ class WebRtcManager {
     dynamic videoConstraints = true;
     if (WebRTC.platformIsDesktop) {
       try {
-        final sources = await desktopCapturer.getSources(types: [SourceType.Screen]);
-        if (sources.isNotEmpty) {
+        final sources = await desktopCapturer.getSources(types: [SourceType.Screen, SourceType.Window]);
+        final target = (sourceId != null && sources.any((s) => s.id == sourceId))
+            ? sources.firstWhere((s) => s.id == sourceId)
+            : (sources.isNotEmpty ? sources.first : null);
+        if (target != null) {
           videoConstraints = {
-            'deviceId': {'exact': sources.first.id},
+            'deviceId': {'exact': target.id},
             'mandatory': {
               'frameRate': fps,
             },
