@@ -69,9 +69,11 @@ class ScreenCaptureService : Service() {
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "app.doscreen/media_projection_service"
+    private val AIRPLAY_CHANNEL = "app.doscreen/airplay"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "startService" -> {
@@ -107,5 +109,29 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        val airplayChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AIRPLAY_CHANNEL)
+        AirPlayManager.onStateChangedCallback = { statusMap ->
+            airplayChannel.invokeMethod("onAirPlayStateChanged", statusMap)
+        }
+
+        airplayChannel.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "startReceiver" -> {
+                    val name = call.argument<String>("name") ?: "DoScreen TV"
+                    AirPlayManager.start(this, name)
+                    result.success(AirPlayManager.getStatusMap())
+                }
+                "stopReceiver" -> {
+                    AirPlayManager.stop()
+                    result.success(AirPlayManager.getStatusMap())
+                }
+                "getStatus" -> {
+                    result.success(AirPlayManager.getStatusMap())
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 }
+

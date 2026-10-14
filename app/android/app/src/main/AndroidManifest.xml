@@ -46,6 +46,13 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaProjection|microphone" />
+        <activity
+            android:name=".AirPlayActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:screenOrientation="unspecified" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

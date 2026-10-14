@@ -36,6 +36,20 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    packaging {
+        resources {
+            excludes += "META-INF/versions/9/OSGI-INF/**"
+            excludes += "META-INF/NOTICE.md"
+            excludes += "META-INF/LICENSE.md"
+        }
+    }
+}
+
+dependencies {
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    implementation("com.googlecode.plist:dd-plist:1.28")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }
 
 kotlin {

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import '../core/airplay/airplay_service.dart';
 import '../core/discovery/discovery_service.dart';
 import '../core/protocol/models.dart';
 import '../core/server/signaling_server.dart';
@@ -74,6 +76,11 @@ class _ReceiverViewState extends State<ReceiverView> {
   late final DiscoveryService _discovery;
   TrustStore? _trustStore;
 
+  bool _airPlayRunning = false;
+  String? _airPlaySender;
+  String _airPlayName = 'DoScreen TV';
+  StreamSubscription? _airPlaySub;
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +91,10 @@ class _ReceiverViewState extends State<ReceiverView> {
   Future<void> _initReceiver() async {
     _trustStore = await TrustStore.create();
     await _fetchLocalIps();
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      _initAirPlay();
+    }
 
     _server = SignalingServer(name: 'DoScreen-TV', requestedPort: 8788);
     await _server!.start();
@@ -107,6 +118,43 @@ class _ReceiverViewState extends State<ReceiverView> {
       });
     } catch (e) {
       debugPrint('Receiver WS error: $e');
+    }
+  }
+
+  Future<void> _initAirPlay() async {
+    final service = AirPlayService();
+    _airPlaySub = service.statusStream.listen((status) {
+      if (mounted) {
+        setState(() {
+          _airPlayRunning = status['isRunning'] as bool? ?? false;
+          _airPlaySender = status['activeSender'] as String?;
+          _airPlayName = status['deviceName'] as String? ?? 'DoScreen TV';
+        });
+      }
+    });
+
+    await service.startReceiver(name: 'DoScreen TV');
+    await service.fetchStatus();
+    if (mounted) {
+      setState(() {
+        _airPlayRunning = service.isRunning;
+        _airPlaySender = service.activeSender;
+        _airPlayName = service.deviceName;
+      });
+    }
+  }
+
+  Future<void> _toggleAirPlay(bool enable) async {
+    final service = AirPlayService();
+    if (enable) {
+      await service.startReceiver(name: _airPlayName);
+    } else {
+      await service.stopReceiver();
+    }
+    if (mounted) {
+      setState(() {
+        _airPlayRunning = service.isRunning;
+      });
     }
   }
 
@@ -267,6 +315,7 @@ class _ReceiverViewState extends State<ReceiverView> {
 
   @override
   void dispose() {
+    _airPlaySub?.cancel();
     _discovery.dispose();
     _receiverSocket?.close();
     _server?.stop();
@@ -330,101 +379,188 @@ class _ReceiverViewState extends State<ReceiverView> {
     final ipDisplay = _localIps.isNotEmpty ? _localIps.first : '192.168.x.x';
 
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 550),
-        child: Card(
-          color: const Color(0xFF161B22),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFF30363D)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.tv, size: 54, color: Colors.cyanAccent),
-                const SizedBox(height: 12),
-                const Text(
-                  'Bu Ekran Alıcı Olarak Hazır',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Gönderen cihazlar ağda bu ekranı otomatik görebilir veya adresi girebilir:',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D1117),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3)),
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 550),
+          child: Card(
+            color: const Color(0xFF161B22),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: Color(0xFF30363D)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.tv, size: 54, color: Colors.cyanAccent),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Bu Ekran Alıcı Olarak Hazır',
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  const SizedBox(height: 6),
+                  Text(
+                    'Gönderen cihazlar ağda bu ekranı otomatik görebilir veya adresi girebilir:',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D1117),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.wifi, color: Colors.cyanAccent, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$ipDisplay:8788',
+                          style: const TextStyle(color: Colors.cyanAccent, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    'EŞLEŞME KODU',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 12, letterSpacing: 2, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF21262D),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: Text(
+                      _pin,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 38,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 10,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.wifi, color: Colors.cyanAccent, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$ipDisplay:8788',
-                        style: const TextStyle(color: Colors.cyanAccent, fontSize: 16, fontWeight: FontWeight.bold),
+                      OutlinedButton.icon(
+                        onPressed: _regeneratePin,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Yeni Kod Üret'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white70,
+                          side: const BorderSide(color: Colors.white24),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _showTrustedDevicesDialog,
+                        icon: const Icon(Icons.security, size: 18, color: Colors.cyanAccent),
+                        label: const Text('Güvenilen Cihazlar', style: TextStyle(color: Colors.cyanAccent)),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.cyanAccent.withValues(alpha: 0.4)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 28),
-                Text(
-                  'EŞLEŞME KODU',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 12, letterSpacing: 2, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF21262D),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: Text(
-                    _pin,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 38,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 10,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: _regeneratePin,
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('Yeni Kod Üret'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white70,
-                        side: const BorderSide(color: Colors.white24),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) ...[
+                    const SizedBox(height: 24),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D1726),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: _airPlayRunning ? Colors.blueAccent.withValues(alpha: 0.5) : Colors.white12,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    OutlinedButton.icon(
-                      onPressed: _showTrustedDevicesDialog,
-                      icon: const Icon(Icons.security, size: 18, color: Colors.cyanAccent),
-                      label: const Text('Güvenilen Cihazlar', style: TextStyle(color: Colors.cyanAccent)),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.cyanAccent.withValues(alpha: 0.4)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.airplay,
+                                color: _airPlayRunning ? Colors.blueAccent : Colors.grey,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'AirPlay 2. Ekran Alıcısı (Mac Destekli)',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _airPlayRunning
+                                          ? (_airPlaySender != null
+                                              ? 'Yansıtılıyor: $_airPlaySender'
+                                              : 'Aktif • Mac Bekleniyor ("$_airPlayName")')
+                                          : 'Kapalı',
+                                      style: TextStyle(
+                                        color: _airPlayRunning
+                                            ? (_airPlaySender != null ? Colors.cyanAccent : Colors.greenAccent)
+                                            : Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                value: _airPlayRunning,
+                                onChanged: _toggleAirPlay,
+                                activeThumbColor: Colors.blueAccent,
+                              ),
+                            ],
+                          ),
+                          if (_airPlayRunning) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.blueAccent.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.info_outline, size: 16, color: Colors.blueAccent),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      "Mac'inizde: Kontrol Merkezi -> Ekran Yansıtma -> 'DoScreen TV' seçin ve 'Ayrı Ekran Olarak Kullan'a tıklayın.",
+                                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
