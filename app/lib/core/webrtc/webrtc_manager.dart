@@ -39,6 +39,12 @@ class WebRtcManager {
       try {
         const platform = MethodChannel('app.doscreen/media_projection_service');
         await platform.invokeMethod('startService');
+        if (enableAudio) {
+          final hasAudio = await platform.invokeMethod<bool>('hasAudioPermission') ?? false;
+          if (!hasAudio) {
+            await platform.invokeMethod('requestAudioPermission');
+          }
+        }
       } catch (_) {}
     }
 
@@ -79,11 +85,7 @@ class WebRtcManager {
     if (enableAudio && stream.getAudioTracks().isEmpty) {
       try {
         secondaryAudioStream = await navigator.mediaDevices.getUserMedia({
-          'audio': {
-            'echoCancellation': false,
-            'noiseSuppression': false,
-            'autoGainControl': false,
-          },
+          'audio': true,
           'video': false,
         });
         for (final track in secondaryAudioStream.getAudioTracks()) {
@@ -169,22 +171,29 @@ class WebRtcManager {
       onCandidate(candidate);
     };
 
-    _peerConnection!.onTrack = (event) {
+    MediaStream? currentRemoteStream;
+    _peerConnection!.onTrack = (event) async {
       event.track.enabled = true;
+      MediaStream stream;
       if (event.streams.isNotEmpty) {
-        final stream = event.streams.first;
-        if (event.track.kind == 'audio' && !stream.getAudioTracks().any((t) => t.id == event.track.id)) {
-          try {
-            stream.addTrack(event.track);
-          } catch (_) {}
-        }
-        for (final t in stream.getAudioTracks()) {
-          t.enabled = true;
-        }
-        onStream(stream);
+        stream = event.streams.first;
+        currentRemoteStream = stream;
+      } else {
+        currentRemoteStream ??= await createLocalMediaStream('remote_stream_${DateTime.now().millisecondsSinceEpoch}');
+        stream = currentRemoteStream!;
       }
+      if (!stream.getTracks().any((t) => t.id == event.track.id)) {
+        try {
+          await stream.addTrack(event.track);
+        } catch (_) {}
+      }
+      for (final t in stream.getAudioTracks()) {
+        t.enabled = true;
+      }
+      onStream(stream);
     };
     _peerConnection!.onAddStream = (stream) {
+      currentRemoteStream = stream;
       for (final t in stream.getAudioTracks()) {
         t.enabled = true;
       }

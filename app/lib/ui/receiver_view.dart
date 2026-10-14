@@ -7,15 +7,16 @@ import '../core/protocol/models.dart';
 import '../core/server/signaling_server.dart';
 import '../core/storage/trust_store.dart';
 import '../core/webrtc/webrtc_manager.dart';
+import 'fullscreen_stream_view.dart';
 
-class _ActiveStreamTile {
+class ActiveStreamTile {
   final String senderId;
   final String name;
   final RTCVideoRenderer renderer;
   final WebRtcManager webrtc;
   bool isMuted = false;
 
-  _ActiveStreamTile({
+  ActiveStreamTile({
     required this.senderId,
     required this.name,
     required this.renderer,
@@ -54,7 +55,7 @@ class _ReceiverViewState extends State<ReceiverView> {
   WebSocket? _receiverSocket;
   String _pin = '------';
   List<String> _localIps = [];
-  final Map<String, _ActiveStreamTile> _tiles = {};
+  final Map<String, ActiveStreamTile> _tiles = {};
   String? _focusedSenderId;
 
   late final DiscoveryService _discovery;
@@ -135,7 +136,7 @@ class _ReceiverViewState extends State<ReceiverView> {
       await renderer.initialize();
       final webrtc = WebRtcManager();
 
-      final tile = _ActiveStreamTile(
+      final tile = ActiveStreamTile(
         senderId: senderId,
         name: 'Kaynak ($senderId)',
         renderer: renderer,
@@ -464,7 +465,20 @@ class _ReceiverViewState extends State<ReceiverView> {
     );
   }
 
-  Widget _buildTileWrapper(_ActiveStreamTile tile, {required bool isFullscreen}) {
+  void _openFullscreen(ActiveStreamTile tile) {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => FullscreenStreamView(
+          tile: tile,
+          onMuteChanged: () {
+            if (mounted) setState(() {});
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTileWrapper(ActiveStreamTile tile, {required bool isFullscreen}) {
     final hasAudio = tile.renderer.srcObject?.getAudioTracks().isNotEmpty ?? false;
 
     return Container(
@@ -477,10 +491,13 @@ class _ReceiverViewState extends State<ReceiverView> {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          Center(
-            child: RTCVideoView(
-              tile.renderer,
-              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+          GestureDetector(
+            onDoubleTap: () => _openFullscreen(tile),
+            child: Center(
+              child: RTCVideoView(
+                tile.renderer,
+                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+              ),
             ),
           ),
           Positioned(
@@ -582,9 +599,13 @@ class _ReceiverViewState extends State<ReceiverView> {
                       color: Colors.white,
                       size: 20,
                     ),
-                    tooltip: isFullscreen ? 'Tam Ekrandan Çık' : 'Tam Ekran',
+                    tooltip: isFullscreen ? 'Bölünmüş Ekrana Dön' : 'Tam Ekran Yap',
                     onPressed: () {
-                      setState(() => _focusedSenderId = isFullscreen ? null : tile.senderId);
+                      if (isFullscreen) {
+                        setState(() => _focusedSenderId = null);
+                      } else {
+                        _openFullscreen(tile);
+                      }
                     },
                   ),
                 ),
