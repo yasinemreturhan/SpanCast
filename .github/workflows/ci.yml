@@ -109,7 +109,7 @@ jobs:
       - name: Build macOS Desktop Release
         run: |
           cd app
-          flutter build macos --release --no-codesign
+          flutter build macos --release
 
       - name: Compress macOS bundle
         run: |
