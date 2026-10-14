@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../client/signaling_client.dart';
 import '../protocol/models.dart';
@@ -28,6 +30,13 @@ class WebRtcManager {
     bool enableAudio = true,
   }) async {
     MediaStream stream;
+
+    if (Platform.isAndroid) {
+      try {
+        const platform = MethodChannel('app.doscreen/media_projection_service');
+        await platform.invokeMethod('startService');
+      } catch (_) {}
+    }
 
     dynamic videoConstraints = true;
     if (WebRTC.platformIsDesktop) {
@@ -157,6 +166,12 @@ class WebRtcManager {
   }
 
   Future<void> dispose() async {
+    if (Platform.isAndroid) {
+      try {
+        const platform = MethodChannel('app.doscreen/media_projection_service');
+        await platform.invokeMethod('stopService');
+      } catch (_) {}
+    }
     try {
       _localStream?.getTracks().forEach((track) => track.stop());
       await _localStream?.dispose();
