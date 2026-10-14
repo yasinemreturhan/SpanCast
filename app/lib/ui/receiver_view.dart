@@ -218,7 +218,9 @@ class _ReceiverViewState extends State<ReceiverView> {
           ).encode());
         },
         (stream) {
-          renderer.srcObject = stream;
+          if (renderer.srcObject != stream) {
+            renderer.srcObject = stream;
+          }
           for (final t in stream.getAudioTracks()) {
             t.enabled = true;
             try {

@@ -37,6 +37,7 @@ class _SenderViewState extends State<SenderView> {
 
   List<DesktopCapturerSource> _availableSources = [];
   String? _selectedSourceId;
+  int _targetFps = 30;
 
   @override
   void initState() {
@@ -166,6 +167,7 @@ class _SenderViewState extends State<SenderView> {
       try {
         await webrtc.startScreenCapture(
           sourceId: _selectedSourceId,
+          fps: _targetFps,
           enableAudio: _shareSystemAudio || _shareMicrophone,
           enableSystemAudio: _shareSystemAudio,
           enableMicrophone: _shareMicrophone,
@@ -390,6 +392,118 @@ class _SenderViewState extends State<SenderView> {
                             activeColor: Colors.blueAccent,
                             dense: true,
                             contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D1117),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 6),
+                            child: Text(
+                              'YAYIN MODU & SENKRONİZASYON',
+                              style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(() => _targetFps = 30),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      color: _targetFps == 30 ? Colors.cyan.withValues(alpha: 0.15) : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: _targetFps == 30 ? Colors.cyanAccent : Colors.white24,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.movie, size: 16, color: _targetFps == 30 ? Colors.cyanAccent : Colors.grey),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              '30 FPS',
+                                              style: TextStyle(
+                                                color: _targetFps == 30 ? Colors.cyanAccent : Colors.white70,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Film / TV Senkron',
+                                          style: TextStyle(
+                                            color: _targetFps == 30 ? Colors.white70 : Colors.grey,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(() => _targetFps = 60),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      color: _targetFps == 60 ? Colors.cyan.withValues(alpha: 0.15) : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: _targetFps == 60 ? Colors.cyanAccent : Colors.white24,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.sports_esports, size: 16, color: _targetFps == 60 ? Colors.cyanAccent : Colors.grey),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              '60 FPS',
+                                              style: TextStyle(
+                                                color: _targetFps == 60 ? Colors.cyanAccent : Colors.white70,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Oyun / Akıcı Hız',
+                                          style: TextStyle(
+                                            color: _targetFps == 60 ? Colors.white70 : Colors.grey,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),

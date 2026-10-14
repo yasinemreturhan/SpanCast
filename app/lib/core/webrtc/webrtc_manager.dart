@@ -30,7 +30,7 @@ class WebRtcManager {
     String? sourceId,
     int width = 1920,
     int height = 1080,
-    int fps = 60,
+    int fps = 30,
     bool enableAudio = true,
     bool enableSystemAudio = true,
     bool enableMicrophone = false,
@@ -217,7 +217,7 @@ class WebRtcManager {
     var offerSdp = offer.sdp ?? '';
     offerSdp = offerSdp.replaceAll(
       'useinbandfec=1',
-      'useinbandfec=1;stereo=1;sprop-stereo=1;maxaveragebitrate=510000;cbr=1',
+      'useinbandfec=1;stereo=1;sprop-stereo=1;maxaveragebitrate=192000',
     );
     final boostedOffer = RTCSessionDescription(offerSdp, offer.type);
     await _peerConnection!.setLocalDescription(boostedOffer);

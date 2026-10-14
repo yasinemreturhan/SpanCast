@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'ui/receiver_view.dart';
 import 'ui/sender_view.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await WebRTC.initialize(options: {
+      'zeroPlayoutDelay': true,
+    });
+  } catch (_) {}
   runApp(const DoScreenApp());
 }
 
