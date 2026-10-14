@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android TV ana ekran afişi (320x180). MVP: düz renk + uygulama simgesi
+     hissi veren vektör; mağaza öncesi görsel tasarımla değiştirilecek. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#0F1117" />
+            <size android:width="320dp" android:height="180dp" />
+        </shape>
+    </item>
+    <item android:gravity="center">
+        <shape android:shape="oval">
+            <solid android:color="#4F8CFF" />
+            <size android:width="72dp" android:height="72dp" />
+        </shape>
+    </item>
+</layer-list>
