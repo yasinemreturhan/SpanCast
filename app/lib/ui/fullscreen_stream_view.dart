@@ -200,7 +200,7 @@ class _FullscreenStreamViewState extends State<FullscreenStreamView> {
                                     Text(
                                       !hasAudio
                                           ? 'Ses Yok'
-                                          : (widget.tile.isMuted ? 'Sessiz' : 'Ses Açık'),
+                                          : (widget.tile.isMuted ? 'Sessiz' : 'Ses %${(widget.tile.volume * 100).toInt()}'),
                                       style: TextStyle(
                                         color: (hasAudio && !widget.tile.isMuted)
                                             ? Colors.greenAccent
@@ -213,6 +213,107 @@ class _FullscreenStreamViewState extends State<FullscreenStreamView> {
                                 ),
                               ),
                               const Spacer(),
+                              // Volume Slider and Quick Boost
+                              if (hasAudio) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.white24),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(
+                                          widget.tile.isMuted ? Icons.volume_off : Icons.volume_up,
+                                          color: widget.tile.isMuted ? Colors.redAccent : Colors.cyanAccent,
+                                          size: 18,
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        tooltip: widget.tile.isMuted ? 'Sesi Aç (M)' : 'Sesi Kapat (M)',
+                                        onPressed: () async {
+                                          await widget.tile.toggleMute();
+                                          widget.onMuteChanged();
+                                          if (mounted) setState(() {});
+                                          _resetHideTimer();
+                                        },
+                                      ),
+                                      const SizedBox(width: 6),
+                                      SizedBox(
+                                        width: 110,
+                                        child: SliderTheme(
+                                          data: SliderTheme.of(context).copyWith(
+                                            trackHeight: 3,
+                                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                                            activeTrackColor: widget.tile.volume > 1.0 ? Colors.orangeAccent : Colors.cyanAccent,
+                                            inactiveTrackColor: Colors.white24,
+                                            thumbColor: widget.tile.volume > 1.0 ? Colors.orangeAccent : Colors.cyanAccent,
+                                          ),
+                                          child: Slider(
+                                            value: widget.tile.volume.clamp(0.0, 2.5),
+                                            min: 0.0,
+                                            max: 2.5,
+                                            onChanged: (v) async {
+                                              await widget.tile.setVolume(v);
+                                              if (widget.tile.isMuted && v > 0) {
+                                                await widget.tile.toggleMute();
+                                                widget.onMuteChanged();
+                                              }
+                                              if (mounted) setState(() {});
+                                              _resetHideTimer();
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        '%${(widget.tile.volume * 100).toInt()}',
+                                        style: TextStyle(
+                                          color: widget.tile.volume > 1.0 ? Colors.orangeAccent : Colors.cyanAccent,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      InkWell(
+                                        onTap: () async {
+                                          final next = widget.tile.volume >= 2.0 ? 1.0 : 2.0;
+                                          await widget.tile.setVolume(next);
+                                          if (widget.tile.isMuted) {
+                                            await widget.tile.toggleMute();
+                                            widget.onMuteChanged();
+                                          }
+                                          if (mounted) setState(() {});
+                                          _resetHideTimer();
+                                        },
+                                        borderRadius: BorderRadius.circular(6),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: widget.tile.volume >= 1.8 ? Colors.orange.withValues(alpha: 0.3) : Colors.white12,
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: widget.tile.volume >= 1.8 ? Colors.orangeAccent : Colors.white24,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            widget.tile.volume >= 1.8 ? '🔥 %200' : '⚡ Boost',
+                                            style: TextStyle(
+                                              color: widget.tile.volume >= 1.8 ? Colors.orangeAccent : Colors.white70,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                              ],
                               // Fit Mode Toggle
                               ElevatedButton.icon(
                                 onPressed: _toggleFitMode,
@@ -235,27 +336,6 @@ class _FullscreenStreamViewState extends State<FullscreenStreamView> {
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              // Audio Mute Toggle Button
-                              if (hasAudio) ...[
-                                IconButton.filledTonal(
-                                  onPressed: () async {
-                                    await widget.tile.toggleMute();
-                                    widget.onMuteChanged();
-                                    if (mounted) setState(() {});
-                                    _resetHideTimer();
-                                  },
-                                  icon: Icon(
-                                    widget.tile.isMuted ? Icons.volume_off : Icons.volume_up,
-                                    color: widget.tile.isMuted ? Colors.redAccent : Colors.cyanAccent,
-                                    size: 20,
-                                  ),
-                                  tooltip: widget.tile.isMuted ? 'Sesi Aç (M)' : 'Sesi Kapat (M)',
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.black.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                              ],
                               // Exit Fullscreen Button
                               IconButton.filledTonal(
                                 onPressed: _exitFullscreen,

@@ -15,6 +15,7 @@ class ActiveStreamTile {
   final RTCVideoRenderer renderer;
   final WebRtcManager webrtc;
   bool isMuted = false;
+  double volume = 1.8; // Default 1.8 (180% boost for clear and loud playback)
 
   ActiveStreamTile({
     required this.senderId,
@@ -23,6 +24,18 @@ class ActiveStreamTile {
     required this.webrtc,
   });
 
+  Future<void> setVolume(double newVolume) async {
+    volume = newVolume.clamp(0.0, 3.0);
+    final stream = renderer.srcObject;
+    if (stream != null) {
+      for (final t in stream.getAudioTracks()) {
+        try {
+          await Helper.setVolume(isMuted ? 0.0 : volume, t);
+        } catch (_) {}
+      }
+    }
+  }
+
   Future<void> toggleMute() async {
     isMuted = !isMuted;
     final stream = renderer.srcObject;
@@ -30,7 +43,7 @@ class ActiveStreamTile {
       for (final t in stream.getAudioTracks()) {
         t.enabled = !isMuted;
         try {
-          await Helper.setVolume(isMuted ? 0.0 : 1.0, t);
+          await Helper.setVolume(isMuted ? 0.0 : volume, t);
         } catch (_) {}
       }
     }
@@ -161,7 +174,7 @@ class _ReceiverViewState extends State<ReceiverView> {
           for (final t in stream.getAudioTracks()) {
             t.enabled = true;
             try {
-              Helper.setVolume(1.0, t);
+              Helper.setVolume(tile.volume, t);
             } catch (_) {}
           }
           if (Platform.isIOS || Platform.isAndroid) {
@@ -549,7 +562,7 @@ class _ReceiverViewState extends State<ReceiverView> {
                       Text(
                         !hasAudio
                             ? 'Ses Yok'
-                            : (tile.isMuted ? 'Sessiz' : 'Ses Açık'),
+                            : (tile.isMuted ? 'Sessiz' : 'Ses %${(tile.volume * 100).toInt()}'),
                         style: TextStyle(
                           color: (hasAudio && !tile.isMuted) ? Colors.greenAccent : Colors.orangeAccent,
                           fontSize: 11,
@@ -568,7 +581,48 @@ class _ReceiverViewState extends State<ReceiverView> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (hasAudio)
+                if (hasAudio) ...[
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Tooltip(
+                      message: 'Ses Seviyesi (Tıkla: Değiştir)',
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        onPressed: () async {
+                          double nextVol;
+                          if (tile.volume < 1.0) {
+                            nextVol = 1.0;
+                          } else if (tile.volume < 1.5) {
+                            nextVol = 1.5;
+                          } else if (tile.volume < 2.0) {
+                            nextVol = 2.0;
+                          } else if (tile.volume < 2.5) {
+                            nextVol = 2.5;
+                          } else {
+                            nextVol = 0.8;
+                          }
+                          await tile.setVolume(nextVol);
+                          if (mounted) setState(() {});
+                        },
+                        child: Text(
+                          '%${(tile.volume * 100).toInt()}',
+                          style: const TextStyle(
+                            color: Colors.cyanAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                   Container(
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
@@ -588,6 +642,7 @@ class _ReceiverViewState extends State<ReceiverView> {
                       },
                     ),
                   ),
+                ],
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.7),

@@ -22,7 +22,10 @@ class _SenderViewState extends State<SenderView> {
   SignalingClient? _client;
   WebRtcManager? _webrtc;
   bool _isStreaming = false;
-  bool _shareAudio = true;
+  bool _shareSystemAudio = true;
+  bool _shareMicrophone = false;
+  bool _isSystemAudioMuted = false;
+  bool _isMicrophoneMuted = false;
   String? _statusMessage;
   Timer? _stopwatchTimer;
   String _currentTimestamp = '';
@@ -163,7 +166,9 @@ class _SenderViewState extends State<SenderView> {
       try {
         await webrtc.startScreenCapture(
           sourceId: _selectedSourceId,
-          enableAudio: _shareAudio,
+          enableAudio: _shareSystemAudio || _shareMicrophone,
+          enableSystemAudio: _shareSystemAudio,
+          enableMicrophone: _shareMicrophone,
         );
         if (mounted) {
           setState(() {
@@ -349,14 +354,45 @@ class _SenderViewState extends State<SenderView> {
                     ),
                     const SizedBox(height: 14),
                     _buildSourceSelector(),
-                    CheckboxListTile(
-                      value: _shareAudio,
-                      onChanged: (v) => setState(() => _shareAudio = v ?? true),
-                      title: const Text('Sistem Sesini de Aktar', style: TextStyle(color: Colors.white, fontSize: 14)),
-                      subtitle: const Text('Görüntüyle birlikte ses de iletilir', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      activeColor: Colors.blueAccent,
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D1117),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 4, bottom: 2),
+                            child: Text(
+                              'SES SEÇENEKLERİ',
+                              style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1),
+                            ),
+                          ),
+                          CheckboxListTile(
+                            value: _shareSystemAudio,
+                            onChanged: (v) => setState(() => _shareSystemAudio = v ?? true),
+                            title: const Text('Medya / Sistem Sesi', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                            subtitle: const Text('Video, müzik ve oyun sesleri aktarılır', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                            secondary: const Icon(Icons.volume_up, color: Colors.cyanAccent),
+                            activeColor: Colors.blueAccent,
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          CheckboxListTile(
+                            value: _shareMicrophone,
+                            onChanged: (v) => setState(() => _shareMicrophone = v ?? false),
+                            title: const Text('Mikrofon Sesi', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                            subtitle: const Text('Kendi konuşmanız ve ortam sesi aktarılır', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                            secondary: const Icon(Icons.mic, color: Colors.orangeAccent),
+                            activeColor: Colors.blueAccent,
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 18),
                     ElevatedButton.icon(
@@ -376,6 +412,75 @@ class _SenderViewState extends State<SenderView> {
                       ),
                     ),
                   ] else ...[
+                    // Live Audio Controls while Streaming
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D1117),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text('CANLI SES KONTROLÜ', style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    setState(() => _isSystemAudioMuted = !_isSystemAudioMuted);
+                                    _webrtc?.setSystemAudioEnabled(!_isSystemAudioMuted);
+                                  },
+                                  icon: Icon(
+                                    _isSystemAudioMuted ? Icons.volume_off : Icons.volume_up,
+                                    color: _isSystemAudioMuted ? Colors.redAccent : Colors.cyanAccent,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    _isSystemAudioMuted ? 'Medya Kapalı' : 'Medya Açık',
+                                    style: TextStyle(
+                                      color: _isSystemAudioMuted ? Colors.redAccent : Colors.cyanAccent,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: _isSystemAudioMuted ? Colors.redAccent : Colors.cyanAccent),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    setState(() => _isMicrophoneMuted = !_isMicrophoneMuted);
+                                    _webrtc?.setMicrophoneEnabled(!_isMicrophoneMuted);
+                                  },
+                                  icon: Icon(
+                                    _isMicrophoneMuted ? Icons.mic_off : Icons.mic,
+                                    color: _isMicrophoneMuted ? Colors.redAccent : Colors.orangeAccent,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    _isMicrophoneMuted ? 'Mic Kapalı' : 'Mic Açık',
+                                    style: TextStyle(
+                                      color: _isMicrophoneMuted ? Colors.redAccent : Colors.orangeAccent,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: _isMicrophoneMuted ? Colors.redAccent : Colors.orangeAccent),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                     ElevatedButton.icon(
                       onPressed: _stopSharing,
                       icon: const Icon(Icons.stop),

@@ -10,6 +10,7 @@ class WebRtcManager {
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
   MediaStream? _secondaryAudioStream;
+  MediaStream? _micStream;
   final SignalingClient? signalingClient;
 
   WebRtcManager({this.signalingClient});
@@ -24,22 +25,27 @@ class WebRtcManager {
     'sdpSemantics': 'unified-plan',
   };
 
-  /// Initializes a sender PeerConnection and captures the screen (with optional audio).
+  /// Initializes a sender PeerConnection and captures the screen (with separate system audio and microphone controls).
   Future<MediaStream> startScreenCapture({
     String? sourceId,
     int width = 1920,
     int height = 1080,
     int fps = 60,
     bool enableAudio = true,
+    bool enableSystemAudio = true,
+    bool enableMicrophone = false,
   }) async {
     MediaStream stream;
     MediaStream? secondaryAudioStream;
+    MediaStream? micStream;
+
+    final shouldCaptureSystemAudio = enableAudio && enableSystemAudio;
 
     if (Platform.isAndroid) {
       try {
         const platform = MethodChannel('app.doscreen/media_projection_service');
         await platform.invokeMethod('startService');
-        if (enableAudio) {
+        if (shouldCaptureSystemAudio || enableMicrophone) {
           final hasAudio = await platform.invokeMethod<bool>('hasAudioPermission') ?? false;
           if (!hasAudio) {
             await platform.invokeMethod('requestAudioPermission');
@@ -68,12 +74,11 @@ class WebRtcManager {
 
     try {
       final mediaConstraints = <String, dynamic>{
-        'audio': enableAudio,
+        'audio': shouldCaptureSystemAudio,
         'video': videoConstraints,
       };
       stream = await navigator.mediaDevices.getDisplayMedia(mediaConstraints);
     } catch (_) {
-      // If audio capture is denied or unsupported on this OS, fall back gracefully to video only
       final fallbackConstraints = <String, dynamic>{
         'audio': false,
         'video': videoConstraints,
@@ -81,8 +86,8 @@ class WebRtcManager {
       stream = await navigator.mediaDevices.getDisplayMedia(fallbackConstraints);
     }
 
-    // Capture device audio via getUserMedia if getDisplayMedia returned no audio tracks
-    if (enableAudio && stream.getAudioTracks().isEmpty) {
+    // Capture device audio via getUserMedia if getDisplayMedia returned no audio tracks (AGC enabled for volume boost!)
+    if (shouldCaptureSystemAudio && stream.getAudioTracks().isEmpty) {
       try {
         secondaryAudioStream = await navigator.mediaDevices.getUserMedia({
           'audio': {
@@ -91,7 +96,8 @@ class WebRtcManager {
               'googEchoCancellation2': 'false',
               'googDAEchoCancellation': 'false',
               'googNoiseSuppression': 'false',
-              'googAutoGainControl': 'false',
+              'googAutoGainControl': 'true',
+              'googAutoGainControl2': 'true',
               'googHighpassFilter': 'false',
               'echoCancellation': 'false',
             },
@@ -119,14 +125,41 @@ class WebRtcManager {
       }
     }
 
+    // Capture microphone independently if enabled
+    if (enableMicrophone) {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({
+          'audio': {
+            'mandatory': {
+              'googEchoCancellation': 'true',
+              'googNoiseSuppression': 'true',
+              'googAutoGainControl': 'true',
+            },
+            'optional': [],
+          },
+          'video': false,
+        });
+        for (final track in micStream.getAudioTracks()) {
+          track.enabled = true;
+          try {
+            await stream.addTrack(track);
+          } catch (_) {}
+        }
+      } catch (e) {
+        debugPrint('Microphone capture error: $e');
+      }
+    }
+
     _localStream = stream;
     _secondaryAudioStream = secondaryAudioStream;
+    _micStream = micStream;
 
     _peerConnection = await createPeerConnection(_lowLatencyConfiguration);
 
     final allTracks = <MediaStreamTrack>[
       ...stream.getTracks(),
       if (secondaryAudioStream != null) ...secondaryAudioStream.getAudioTracks(),
+      if (micStream != null) ...micStream.getAudioTracks(),
     ];
     final seenIds = <String>{};
     final uniqueTracks = allTracks.where((t) => t.id != null && seenIds.add(t.id!)).toList();
@@ -169,14 +202,44 @@ class WebRtcManager {
       'offerToReceiveAudio': 0,
       'offerToReceiveVideo': 0,
     });
-    await _peerConnection!.setLocalDescription(offer);
+
+    var offerSdp = offer.sdp ?? '';
+    offerSdp = offerSdp.replaceAll(
+      'useinbandfec=1',
+      'useinbandfec=1;stereo=1;sprop-stereo=1;maxaveragebitrate=510000;cbr=1',
+    );
+    final boostedOffer = RTCSessionDescription(offerSdp, offer.type);
+    await _peerConnection!.setLocalDescription(boostedOffer);
 
     signalingClient?.send(SignalMessage(
       type: 'offer',
-      payload: {'sdp': offer.sdp, 'type': offer.type},
+      payload: {'sdp': boostedOffer.sdp, 'type': boostedOffer.type},
     ));
 
     return stream;
+  }
+
+  /// Live toggle for microphone on sender
+  void setMicrophoneEnabled(bool enabled) {
+    if (_micStream != null) {
+      for (final t in _micStream!.getAudioTracks()) {
+        t.enabled = enabled;
+      }
+    }
+  }
+
+  /// Live toggle for system/media audio on sender
+  void setSystemAudioEnabled(bool enabled) {
+    if (_localStream != null) {
+      for (final t in _localStream!.getAudioTracks()) {
+        t.enabled = enabled;
+      }
+    }
+    if (_secondaryAudioStream != null) {
+      for (final t in _secondaryAudioStream!.getAudioTracks()) {
+        t.enabled = enabled;
+      }
+    }
   }
 
   /// Handles incoming offer and creates answer (used on receiver side).
@@ -263,11 +326,14 @@ class WebRtcManager {
       await _localStream?.dispose();
       _secondaryAudioStream?.getTracks().forEach((track) => track.stop());
       await _secondaryAudioStream?.dispose();
+      _micStream?.getTracks().forEach((track) => track.stop());
+      await _micStream?.dispose();
       await _peerConnection?.close();
       await _peerConnection?.dispose();
     } catch (_) {}
     _localStream = null;
     _secondaryAudioStream = null;
+    _micStream = null;
     _peerConnection = null;
   }
 }
