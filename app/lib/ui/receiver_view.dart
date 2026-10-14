@@ -71,7 +71,7 @@ class _ReceiverViewState extends State<ReceiverView> {
 
     // Connect local controller socket as receiver role
     try {
-      final ws = await WebSocket.connect('ws://localhost:8788/ws?role=receiver');
+      final ws = await WebSocket.connect('ws://127.0.0.1:${_server!.port}/ws?role=receiver');
       _receiverSocket = ws;
 
       ws.listen(_handleReceiverMessage, onDone: () {

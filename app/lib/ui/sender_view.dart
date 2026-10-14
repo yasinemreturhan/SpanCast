@@ -99,7 +99,18 @@ class _SenderViewState extends State<SenderView> {
           : 'Alıcıya bağlanılıyor...';
     });
 
-    final targetUri = Uri.parse(host.startsWith('http') ? host : 'http://$host');
+    String cleanHost = host.trim();
+    if (!cleanHost.startsWith('http://') &&
+        !cleanHost.startsWith('https://') &&
+        !cleanHost.startsWith('ws://') &&
+        !cleanHost.startsWith('wss://')) {
+      cleanHost = 'http://$cleanHost';
+    }
+    Uri targetUri = Uri.parse(cleanHost);
+    if (!targetUri.hasPort || targetUri.port == 80) {
+      targetUri = targetUri.replace(port: 8788);
+    }
+
     final client = SignalingClient(
       serverUri: targetUri,
       deviceName: name,
@@ -110,6 +121,16 @@ class _SenderViewState extends State<SenderView> {
 
     final webrtc = WebRtcManager(signalingClient: client);
     _webrtc = webrtc;
+
+    client.on('_state', (msg) {
+      if (mounted && !_isStreaming) {
+        if (msg.reason == 'connecting') {
+          setState(() => _statusMessage = 'Alıcıya bağlanılıyor...');
+        } else if (msg.reason == 'authenticating') {
+          setState(() => _statusMessage = 'Doğrulanıyor...');
+        }
+      }
+    });
 
     client.on('paired', (msg) async {
       final issued = client.issuedToken;
@@ -157,6 +178,7 @@ class _SenderViewState extends State<SenderView> {
         'room-full': 'Oda dolu (en fazla 4 kaynak).',
         'rate-limited': 'Çok fazla hatalı deneme! Lütfen 1 dakika bekleyin.',
         'receiver-gone': 'Alıcı kapandı.',
+        'connection-failed': 'Alıcıya bağlanılamadı. IP adresini ve alıcının açık olduğunu kontrol edin.',
       };
       if (mounted) {
         setState(() => _statusMessage = '❌ ${errorMap[reason] ?? reason}');

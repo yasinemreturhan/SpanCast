@@ -28,33 +28,33 @@ class WebRtcManager {
     bool enableAudio = true,
   }) async {
     MediaStream stream;
+
+    dynamic videoConstraints = true;
+    if (WebRTC.platformIsDesktop) {
+      try {
+        final sources = await desktopCapturer.getSources(types: [SourceType.Screen]);
+        if (sources.isNotEmpty) {
+          videoConstraints = {
+            'deviceId': {'exact': sources.first.id},
+            'mandatory': {
+              'frameRate': fps,
+            },
+          };
+        }
+      } catch (_) {}
+    }
+
     try {
       final mediaConstraints = <String, dynamic>{
         'audio': enableAudio,
-        'video': {
-          'mandatory': {
-            'minWidth': '$width',
-            'minHeight': '$height',
-            'minFrameRate': '$fps',
-          },
-          'facingMode': 'user',
-          'optional': [],
-        }
+        'video': videoConstraints,
       };
       stream = await navigator.mediaDevices.getDisplayMedia(mediaConstraints);
     } catch (_) {
-      // If audio capture is denied or unsupported on this OS, fall back gracefully
+      // If audio capture is denied or unsupported on this OS, fall back gracefully to video only
       final fallbackConstraints = <String, dynamic>{
         'audio': false,
-        'video': {
-          'mandatory': {
-            'minWidth': '$width',
-            'minHeight': '$height',
-            'minFrameRate': '$fps',
-          },
-          'facingMode': 'user',
-          'optional': [],
-        }
+        'video': videoConstraints,
       };
       stream = await navigator.mediaDevices.getDisplayMedia(fallbackConstraints);
     }
@@ -123,6 +123,9 @@ class WebRtcManager {
       if (event.streams.isNotEmpty) {
         onStream(event.streams.first);
       }
+    };
+    _peerConnection!.onAddStream = (stream) {
+      onStream(stream);
     };
 
     await _peerConnection!.setRemoteDescription(

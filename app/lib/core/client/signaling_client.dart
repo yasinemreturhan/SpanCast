@@ -67,8 +67,12 @@ class SignalingClient {
     _state = SignalingClientState.connecting;
     _emit('_state', SignalMessage(type: '_state', reason: _state.name));
 
+    final effectivePort = (serverUri.hasPort && serverUri.port != 80 && serverUri.port != 0)
+        ? serverUri.port
+        : 8788;
     final wsUri = serverUri.replace(
       scheme: serverUri.scheme == 'https' || serverUri.scheme == 'wss' ? 'wss' : 'ws',
+      port: effectivePort,
       path: '/ws',
       queryParameters: {
         'role': 'sender',
@@ -91,6 +95,9 @@ class SignalingClient {
         cancelOnError: true,
       );
     } catch (e) {
+      if (_reconnectAttempts >= 2) {
+        _emit('error', const SignalMessage(type: 'error', reason: 'connection-failed'));
+      }
       _handleDisconnect();
     }
   }
