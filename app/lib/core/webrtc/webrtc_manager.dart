@@ -85,17 +85,37 @@ class WebRtcManager {
     if (enableAudio && stream.getAudioTracks().isEmpty) {
       try {
         secondaryAudioStream = await navigator.mediaDevices.getUserMedia({
-          'audio': true,
+          'audio': {
+            'mandatory': {
+              'googEchoCancellation': 'false',
+              'googEchoCancellation2': 'false',
+              'googDAEchoCancellation': 'false',
+              'googNoiseSuppression': 'false',
+              'googAutoGainControl': 'false',
+              'googHighpassFilter': 'false',
+              'echoCancellation': 'false',
+            },
+            'optional': [],
+          },
           'video': false,
         });
+      } catch (_) {
+        try {
+          secondaryAudioStream = await navigator.mediaDevices.getUserMedia({
+            'audio': true,
+            'video': false,
+          });
+        } catch (e) {
+          debugPrint('Audio capture fallback error: $e');
+        }
+      }
+      if (secondaryAudioStream != null) {
         for (final track in secondaryAudioStream.getAudioTracks()) {
           track.enabled = true;
           try {
             await stream.addTrack(track);
           } catch (_) {}
         }
-      } catch (e) {
-        debugPrint('Audio capture fallback error: $e');
       }
     }
 
