@@ -27,6 +27,12 @@ void main() {
     final infoReq = await client.get('localhost', server.port, '/api/info');
     final infoRes = await infoReq.close();
     expect(infoRes.statusCode, HttpStatus.ok);
+
+    final viewReq = await client.get('localhost', server.port, '/');
+    final viewRes = await viewReq.close();
+    expect(viewRes.statusCode, HttpStatus.ok);
+    expect(viewRes.headers.contentType?.mimeType, 'text/html');
+
     client.close();
   });
 
