@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DoScreen — Her Cihazdan Her Cihaza, Gecikmesiz Ekran Paylaşımı</title>
+  <meta name="description" content="DoScreen: Bilgisayardan Google TV'ye, telefondan monitöre tek tıkla ve ultra düşük gecikmeyle ekran yansıtma ve paylaşım platformu.">
+  <meta name="theme-color" content="#06b6d4">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #06b6d4;
+      --primary-dark: #0891b2;
+      --primary-light: #67e8f9;
+      --accent: #3b82f6;
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-card: #161e2e;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(circle at 20% 20%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    header {
+      padding: 22px 0;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9, 13, 22, 0.85);
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      color: var(--primary-light);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .hero {
+      padding: 70px 0 50px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: clamp(34px, 5.5vw, 56px);
+      font-weight: 900;
+      line-height: 1.15;
+      margin-bottom: 22px;
+      letter-spacing: -1px;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, var(--primary-light), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: clamp(16px, 2vw, 19px);
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto 36px;
+    }
+
+    .cta-group {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 32px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 16px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px -5px rgba(6, 182, 212, 0.55);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface-card);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .meta-info {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Cards */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin: 60px 0;
+    }
+
+    .card {
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 18px;
+    }
+
+    .card h3 {
+      font-size: 19px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Steps */
+    .steps-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px;
+      margin-bottom: 70px;
+    }
+
+    .steps-box h2 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+
+    .step-text h4 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .step-text p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    code {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      color: var(--primary-light);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container header-content">
+      <a href="/" class="logo">
+        <div class="logo-icon">📺</div>
+        <span>DoScreen</span>
+      </a>
+      <span class="badge">v0.1.0 Alpha</span>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <span class="badge">🚀 Ekosistem Duvarları Olmadan</span>
+      <h1>Her Cihazdan Her Cihaza<br><span>Gecikmesiz Ekran Paylaşımı</span></h1>
+      <p>Bilgisayarından Google TV'ye, telefonundan monitörüne tek tıkla bağlan. Miracast ve AirPlay sınırlarına takılmadan, yerel ağda P2P düşük gecikmeyle ekranını yansıt.</p>
+
+      <div class="cta-group">
+        <a href="/DoScreen.apk" class="btn btn-primary" download>
+          <span>📥</span> Android APK İndir (DoScreen.apk)
+        </a>
+        <a href="#guide" class="btn btn-secondary">
+          <span>📖</span> Kurulum Rehberi
+        </a>
+      </div>
+      <div class="meta-info">Android 7.0+ · Google TV / Android TV / Telefon / Tablet Uyumlu · ~183 MB</div>
+    </section>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h3>Ultra Düşük Gecikme</h3>
+        <p>Tarayıcı tamponlarını devreden çıkaran native WebRTC motoru. LAN üzerinde &le; 40 ms tepki süresiyle fare hareketlerini anında hisset.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔒</div>
+        <h3>PIN ile Güvenli Eşleşme</h3>
+        <p>PIN ağdan asla düz metin geçmez. HMAC-SHA256 challenge-response doğrulaması ve kaba kuvvet saldırı korumasıyla güvenli eşleşme.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📺</div>
+        <h3>Google TV & Leanback Hazır</h3>
+        <p>Televizyon kumandası (D-pad) ile tam uyumlu arayüz. TV ana ekranında uygulama ikonu ve arka planda dinleme modu.</p>
+      </div>
+    </div>
+
+    <section id="guide" class="steps-box">
+      <h2>Google TV / Android TV Hızlı Kurulum</h2>
+      
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <h4>APK'yı İndirin</h4>
+          <p>Yukarıdaki <strong>"Android APK İndir"</strong> butonundan <code>DoScreen.apk</code> dosyasını bilgisayarınıza veya telefonunuza indirin.</p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <h4>Google TV'ye Yükleyin (ADB ile)</h4>
+          <p>Google TV'de <em>Ayarlar &rarr; Sistem &rarr; Hakkında &rarr; Android TV OS derlemesi</em> üzerine 7 kez basarak geliştirici seçeneklerini açın. <em>Ağ üzerinden hata ayıklama</em>'yı aktif edin ve terminalden yükleyin:</p>
+          <p style="margin-top:6px;"><code>adb connect &lt;TV-IP&gt;:5555 && adb install DoScreen.apk</code></p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <h4>Alternatif: Dosya Yöneticisi veya USB</h4>
+          <p>APK'yı bir USB belleğe atıp veya TV'deki <em>Send Files to TV</em> uygulamasıyla gönderip TV'deki dosya yöneticisiyle tek tıkla yükleyebilirsiniz.</p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <div class="step-text">
+          <h4>Bağlanın ve Yayınlayın</h4>
+          <p>TV'de DoScreen'i açın; ekrandaki 6 haneli PIN ve IP adresiyle telefonunuzdan veya bilgisayarınızdan anında yayını başlatın.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>DoScreen &bull; Geliştirici: Yasin Emre Turhan &bull; Debian VPS Caddy Altyapısı</p>
+    </div>
+  </footer>
+
+</body>
+</html>
