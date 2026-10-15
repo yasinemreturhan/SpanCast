@@ -525,12 +525,12 @@ const String _webReceiverHtml = r'''<!DOCTYPE html>
       <h2>📥 SpanCast Uygulamaları</h2>
       <p style="color: #94a3b8; font-size: 14px;">Tam performans, ses iletimi ve 60 FPS ultra düşük gecikme için SpanCast uygulamasını indirin:</p>
       <div class="downloads-grid">
-        <a class="dl-btn" href="https://doscreen.duckdns.org/SpanCast.apk" target="_blank">📱 Android (APK)</a>
-        <a class="dl-btn" href="https://doscreen.duckdns.org/SpanCast-Windows-x64.zip" target="_blank">🪟 Windows (x64)</a>
-        <a class="dl-btn" href="https://doscreen.duckdns.org/SpanCast-macOS.zip" target="_blank">🍎 macOS (Apple Silicon/Intel)</a>
+        <a class="dl-btn" href="https://spancast.yasinemreturhan.com/SpanCast.apk" target="_blank">📱 Android (APK)</a>
+        <a class="dl-btn" href="https://spancast.yasinemreturhan.com/SpanCast-Windows-x64.zip" target="_blank">🪟 Windows (x64)</a>
+        <a class="dl-btn" href="https://spancast.yasinemreturhan.com/SpanCast-macOS.zip" target="_blank">🍎 macOS (Apple Silicon/Intel)</a>
       </div>
       <div style="margin-top: 14px; text-align: center;">
-        <a href="https://doscreen.duckdns.org" target="_blank" style="color: #818cf8; font-size: 13px; text-decoration: none;">Resmi İndirme Sayfası ve Rehber &rarr;</a>
+        <a href="https://spancast.yasinemreturhan.com" target="_blank" style="color: #818cf8; font-size: 13px; text-decoration: none;">Resmi İndirme Sayfası ve Rehber &rarr;</a>
       </div>
     </div>
   </div>
