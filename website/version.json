@@ -1,0 +1,11 @@
+{
+  "version": "0.1.0",
+  "versionCode": 1,
+  "releaseDate": "2026-10-15",
+  "releaseNotes": "SpanCast v0.1.0 Kararlı Sürüm:\n• AirPlay 2 Alıcı desteği (Mac & iOS için sıfır gecikme ve 2. ekran)\n• Dahili otomatik güncelleme sistemi\n• Windows & Android TV donanım hızlandırmalı WebRTC motoru\n• QR kod & PIN ile hızlı güvenli eşleşme",
+  "downloads": {
+    "android": "https://spancast.yasinemreturhan.com/SpanCast.apk",
+    "windows": "https://spancast.yasinemreturhan.com/SpanCast-Windows-x64.zip",
+    "macos": "https://spancast.yasinemreturhan.com/SpanCast-macOS.zip"
+  }
+}
